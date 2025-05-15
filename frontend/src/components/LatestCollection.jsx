@@ -1,4 +1,4 @@
-import React, {useContext, useState, useEffect} from 'react'
+import {useContext, useState, useEffect} from 'react'
 import { ShopContext } from '../context/ShopContext';
 import Title from './Title';
 import ProductItem from './Productitem';
@@ -13,7 +13,7 @@ const LatestCollection = () => {
 
   setLatestProducts(products.slice(0,10));
 
- },[] )
+ },[products] )
 
 
   return (
@@ -21,7 +21,7 @@ const LatestCollection = () => {
       <div className='text-center py-8 text-3xl'>
         <Title text1={'LATEST'} text2={'COLLECTION'}/>
         <p className='w-3/4 m-auto text-xs sm:text-sm md:text-base text-gray-600'>
-           my name is malith damsraa and i'm ucsc students
+           my name is malith damsraa and i&apos;m ucsc students
         </p>
       </div>
 

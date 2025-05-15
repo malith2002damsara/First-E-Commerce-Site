@@ -1,6 +1,6 @@
-import React, { useContext,useEffect,useState } from 'react'
+import { useContext,useEffect,useState } from 'react'
 import { ShopContext } from '../context/ShopContext'
-import { assets } from '../assets/assets';
+import {assets} from '../assets/assets'
 import ProductItem from '../components/Productitem';
 
 const Collection = () => {
@@ -74,7 +74,7 @@ const Collection = () => {
   useEffect(()=>{
    applyFilter();
 
-  },[category,subCategory,search,showSearch])
+  },[category,subCategory,search,showSearch,products])
 
   useEffect(()=>{
     sortProduct();

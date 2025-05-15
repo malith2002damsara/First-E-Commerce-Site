@@ -1,7 +1,7 @@
-import React, { useContext, useEffect, useState } from 'react'
+import  { useContext, useEffect, useState, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { ShopContext } from '../context/ShopContext';
-import { assets } from '../assets/assets';
+import {assets} from '../assets/assets'
 import RelatedProducts from '../components/RelatedProducts';
 
 const Product = () => {
@@ -13,7 +13,7 @@ const [productData,setProductData]=useState(false);
 const [image,setImage]=useState('')
 const [size,setSize]=useState('');
 
-const fetchProductData = async()=>{
+const fetchProductData = useCallback(async()=>{
     products.map((item)=>{
       if(item._id==productId){
         setProductData(item)
@@ -22,11 +22,11 @@ const fetchProductData = async()=>{
         return null;
       }
     })
-}
+}, [products, productId]);
 
 useEffect(()=>{
   fetchProductData();
-},[productId,products])
+},[fetchProductData])
 
 
 
