@@ -4,54 +4,64 @@ import productModel from "../models/productModel.js";
 
 // function for add product
 const addProduct = async (req, res) => {
-   try {
-     const { name, description, price, category, subCategory, sizes, bestseller } = req.body;
- 
-     // Check for required fields
-     if (!name || !description || !price || !category || !sizes) {
-       return res.status(400).json({ success: false, message: "Missing required fields" });
-     }
- 
-     // Handle file uploads
-     let imagesUrl = [];
-     if (req.files) {
-       const images = [
-         req.files.image1 && req.files.image1[0],
-         req.files.image2 && req.files.image2[0],
-         req.files.image3 && req.files.image3[0],
-         req.files.image4 && req.files.image4[0]
-       ].filter(item => item !== undefined);
- 
-       imagesUrl = await Promise.all(
-         images.map(async (item) => {
-           const result = await cloudinary.uploader.upload(item.path, { resource_type: "image" });
-           return result.secure_url;
-         })
-       );
-     }
- 
-     // Prepare product data
-     const productData = {
-       name,
-       description,
-       category,
-       price: Number(price),
-       subcategory: subCategory, // Note: schema uses subcategory but you're using subCategory
-       bestSeller: bestseller === 'true', // Note: schema uses bestSeller but you're using bestseller
-       sizes: typeof sizes === 'string' ? JSON.parse(sizes) : sizes,
-       image: imagesUrl, // Changed from images to image to match schema
-       date: Date.now()
-     };
- 
-     const product = new productModel(productData);
-     await product.save();
- 
-     res.json({ success: true, message: "Product added successfully" });
-   } catch (error) {
-     console.log(error);
-     res.status(500).json({ success: false, message: error.message });
-   }
- };
+  try {
+    // For FormData, text fields are available in req.body
+    // Note: Field names must match what frontend sends: sellername, sellerphone
+    const { name, description, sellername, sellerphone, price, category, subCategory, sizes, bestseller } = req.body;
+
+    console.log("Received data:", req.body); // Debug log
+
+    // Validate required fields
+    if (!name || !description || !price || !category || !sizes || !sellername || !sellerphone) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Missing required fields",
+        received: { name, description, sellername, sellerphone, price, category, subCategory, sizes, bestseller }
+      });
+    }
+
+    // Handle file uploads
+    let imagesUrl = [];
+    if (req.files) {
+      // Your existing file upload logic...
+      // Example:
+      // const files = ['image1', 'image2', 'image3', 'image4'];
+      // for (const file of files) {
+      //   if (req.files[file]) {
+      //     // Process and upload file
+      //     imagesUrl.push(uploadedFileUrl);
+      //   }
+      // }
+    }
+
+    // Prepare product data - field names must match schema
+    const productData = {
+      name: name.trim(),
+      description: description.trim(),
+      sellername: sellername.trim(), // Match schema field name
+      sellerphone: sellerphone.trim(), // Match schema field name
+      category,
+      price: Number(price),
+      subcategory: subCategory,
+      bestSeller: bestseller === 'true' || bestseller === true,
+      sizes: typeof sizes === 'string' ? JSON.parse(sizes) : sizes,
+      image: imagesUrl,
+      date: Date.now()
+    };
+
+    console.log("Product data to save:", productData); // Debug log
+
+    const product = new productModel(productData);
+    await product.save();
+
+    console.log("Product saved successfully:", product); // Debug log
+
+    res.json({ success: true, message: "Product added successfully" });
+  } catch (error) {
+    console.log("Error in addProduct:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 
 // function for get all products

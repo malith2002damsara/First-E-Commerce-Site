@@ -3,7 +3,9 @@ import { ShopContext } from '../context/ShopContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
+
 const Login = () => {
+  
 
   const [currentState , setCurrentState] = useState('Login');
   const {token , setToken, navigate, backendUrl} = useContext(ShopContext)
@@ -18,6 +20,7 @@ const Login = () => {
       if(currentState === 'Sign Up'){
 
         const response = await axios.post(backendUrl + '/api/user/register' , {name,email,password})
+        
         if(response.data.success){
            setToken(response.data.token)
            localStorage.setItem('token',response.data.token)
@@ -39,6 +42,7 @@ const Login = () => {
     }catch(error){
         console.log(error)
         toast.error(error.message)
+        // console.log("Making request to:", backendUrl + '/api/user/...');
     }
   }
 

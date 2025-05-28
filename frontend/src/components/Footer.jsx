@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { assets } from '../assets/assets'
 import { Link} from 'react-router-dom';
 
@@ -8,7 +8,7 @@ const Footer = () => {
       <div className='flex flex-col sm:grid grid-cols-[3fr_1fr_1fr] gap-14 my-10 mt-40 text-sm px-5'>
 
         <div>
-        <Link to='/'> <img on src={assets.logo} alt="" className='mb-5 w-32' /> </Link> 
+        <Link to='/'> <img src={assets.logo} alt="" className='mb-5 w-32' /> </Link> 
 
           <p className='w-full md:w-1/2 text-gray-600'>
           Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney Colege in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage,

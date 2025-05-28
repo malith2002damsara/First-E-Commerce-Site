@@ -43,7 +43,7 @@ const Collection = () => {
       productsCopy = productsCopy.filter(item=>category.includes(item.category))
     }
     if(subCategory.length >0){
-      productsCopy = productsCopy.filter(item=>subCategory.includes(item.subCategory))
+      productsCopy = productsCopy.filter(item=>subCategory.includes(item.subcategory))
     }
 
     setFilterProducts(productsCopy)
@@ -89,6 +89,17 @@ const Collection = () => {
         <p onClick={()=>setShowFilter(!showFilter)} className='my-2 text-xl flex items-center cursor-pointer gap-2'>FILTERS
           <img src={assets.dropdown_icon} alt="" className={`h-3 sm:hidden ${showFilter ? 'rotate-90':''}`} />
         </p>
+
+         <div className='flex justify-between text-base sm:text-2xl mb-4'>
+    
+
+          {/* product sort */}
+          <select onChange={(e)=>setSortType(e.target.value)} className='border-2 border-gray-300 text-sm px-2'>
+            <option value="relavent">Sort by : Relevant</option>
+            <option value="low-high">Sort by : Low to High</option>
+            <option value="high-low">Sort by : High to Low</option>
+          </select>
+        </div>
         {/*category Filter*/}
         <div className={`border border-gray-300 pl-5 py-3 mt-6 ${showFilter ? '' :'hidden'} sm:block`}>
           <p className='mb-3 text-sm font-medium'>CATEGORIES</p>
@@ -111,7 +122,7 @@ const Collection = () => {
             <p className='flex gap-2'>
               <input type="checkbox" value={'Topwear'} className='w-3' onChange={toggleSubCategory} /> Topwear  </p>
               <p className='flex gap-2'>
-              <input type="checkbox" value={'Bottomwera'} className='w-3' onChange={toggleSubCategory}/> Bottomwear    </p>
+              <input type="checkbox" value={'Bottomwear'} className='w-3' onChange={toggleSubCategory}/> Bottomwear    </p>
          
               <p className='flex gap-2'>
               <input type="checkbox" value={'Winterwear'} className='w-3' onChange={toggleSubCategory} /> Winterwear  </p>
@@ -123,16 +134,7 @@ const Collection = () => {
 
       {/* Right side  */}
       <div className='flex-1'>
-        <div className='flex justify-between text-base sm:text-2xl mb-4'>
-    
-
-          {/* product sort */}
-          <select onChange={(e)=>setSortType(e.target.value)} className='border-2 border-gray-300 text-sm px-2'>
-            <option value="relavent">Sort by : Relevant</option>
-            <option value="low-high">Sort by : Low to High</option>
-            <option value="high-low">Sort by : High to Low</option>
-          </select>
-        </div>
+       
 
         {/* Map Products */}
 

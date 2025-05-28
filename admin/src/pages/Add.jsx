@@ -18,6 +18,8 @@ const Add = ({token}) => {
   const [subCategory,setSubCategory]= useState('Topwear');
   const [bestseller,setBestseller]= useState(false);
   const [sizes,setSizes]= useState([]);
+  const [sellername,setSellername]= useState('')
+  const [sellerphone,setSellerphone]= useState('')
 
 
   const onSubmitHandler = async (e)=> {
@@ -34,6 +36,8 @@ const Add = ({token}) => {
       formData.append("subCategory",subCategory)
       formData.append("bestseller",bestseller)
       formData.append("sizes",JSON.stringify(sizes))
+      formData.append("sellername", sellername)
+formData.append("sellerphone", sellerphone)
 
       image1 && formData.append("image1",image1)
       image2 && formData.append("image2",image2)
@@ -43,14 +47,17 @@ const Add = ({token}) => {
       const response = await axios.post(backendUrl + "/api/product/add",formData,{headers:{token}})
 
       if(response.data.success){
+        
        toast.success("Product Added Successfully")
        setName('')
        setDescription('')
        setPrice('')
-      //  setCategory('')
-      //  setSubCategory('')
-      //  setBestseller('')
-      //  setSizes('')
+       setCategory('Men') // Reset to default value
+       setSubCategory('Topwear') // Reset to default value
+       setBestseller(false) // Reset to default value
+       setSizes([]) // Reset to empty array
+       setSellername('') // This was the issue - reset to empty string is correct
+       setSellerphone('') // This was the issue - reset to empty string is correct
        setImage1(false)
        setImage2(false)
        setImage3(false)
@@ -109,11 +116,21 @@ const Add = ({token}) => {
       <textarea onChange={(e)=> setDescription(e.target.value)} value = {description} className='w-full max-w-[500px] px-3 py-2' type = 'text' placeholder='Write Content Here' required/>
      </div>
 
+      <div className="w-full">
+      <p className="mb-2">Seller Name</p>
+      <input onChange={(e)=> setSellername(e.target.value)} value = {sellername} className='w-full max-w-[500px] px-3 py-2' type = 'text' placeholder='Type Here' required/>
+     </div>
+     
+      <div className="w-full">
+      <p className="mb-2">Seller Phone Number</p>
+      <input onChange={(e)=> setSellerphone(e.target.value)} value = {sellerphone} className='w-full max-w-[500px] px-3 py-2' type = 'tel' placeholder='Type Here' required/>
+     </div>
+
      <div className="flex flex-col sm:flex-row gap-2 w-full sm:gap-8">
 
       <div className="">
         <p className="mb-2">Product Category</p>
-        <select onChange={(e)=> setCategory(e.target.value)} className="w-full px-3 py-2">
+        <select onChange={(e)=> setCategory(e.target.value)} value={category} className="w-full px-3 py-2">
           <option value="Men">Men</option>
           <option value="Women">Women</option>
           <option value="Kids">Kids</option>
@@ -122,7 +139,7 @@ const Add = ({token}) => {
 
       <div className="">
         <p className="mb-2">Sub Category</p>
-        <select onChange={(e)=> setSubCategory(e.target.value)} className="w-full px-3 py-2">
+        <select onChange={(e)=> setSubCategory(e.target.value)} value={subCategory} className="w-full px-3 py-2">
           <option value="Topwear">Topwear</option>
           <option value="Bottomwear">Bottomwear</option>
           <option value="Winterwear">Winterwear</option>
@@ -131,7 +148,7 @@ const Add = ({token}) => {
 
       <div className="">
         <p className="mb-2">Product Price</p>
-        <input onChange={(e)=> setPrice(e.target.value)} value = {price} className='w-full px-3 py-2 sm:w-[120px]' type = 'Number' placeholder='25' />
+        <input onChange={(e)=> setPrice(e.target.value)} value = {price} className='w-full px-3 py-2 sm:w-[120px]' type = 'number' placeholder='25' required/>
 
       </div>
 
@@ -164,7 +181,7 @@ const Add = ({token}) => {
 
     <div className="mt-2">
       <input onChange={()=> setBestseller(prev=>!prev)} checked={bestseller} type='checkbox' id='bestseller'/>
-      <lable className='cursor-pointer' htmlFor='bestseller'>Add To Bestseller</lable>
+      <label className='cursor-pointer ml-2' htmlFor='bestseller'>Add To Bestseller</label>
     </div>
 
    <button type='submit' className='w-28 py-3 mt-4 bg-black text-white '>ADD</button>
@@ -173,4 +190,4 @@ const Add = ({token}) => {
   )
 }
 
-export default Add
+export default Add;
