@@ -25,4 +25,3 @@ ProductItem.propTypes = {
 };
 
 export default ProductItem;
-
