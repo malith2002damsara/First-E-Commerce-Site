@@ -110,7 +110,7 @@ the same</p>
 
         {/* -------------display related products ---------------- */}
 
-        <RelatedProducts category={productData.category} subCategory={productData.subCategory}/>
+        <RelatedProducts category={productData.category} subCategory={productData.subcategory}/>
 
     </div>
   ) : <div className="opacity-0"></div>

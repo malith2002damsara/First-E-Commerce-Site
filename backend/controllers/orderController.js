@@ -22,7 +22,7 @@ const placeOrder = async (req, res) => {
   try {
     const { userId, items, amount, address } = req.body
     const orderData = {
-      userId,
+      user: userId,
       items,
       amount,
       address,
@@ -51,7 +51,7 @@ const placeOrderStripe = async (req, res) => {
     const { origin } = req.headers;
 
     const orderData = {
-      userId,
+      user: userId,
       items,
       amount,
       address,

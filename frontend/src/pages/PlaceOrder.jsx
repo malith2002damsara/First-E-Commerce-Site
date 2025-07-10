@@ -137,7 +137,7 @@ return (
 
     <div className="flex flex-col gap-4 w-full sm:max-w-[480px] px-10">
       <div className="text-xl sm:text-2xl my-3">
-        <Title text1={'Delivery'} texr2={'Information'} />
+        <Title text1={'Delivery'} text2={'Information'} />
       </div>
 
       <div className="flex gap-3">
