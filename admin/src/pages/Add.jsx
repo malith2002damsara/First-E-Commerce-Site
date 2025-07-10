@@ -25,6 +25,11 @@ const Add = ({token}) => {
   const onSubmitHandler = async (e)=> {
 
     e.preventDefault();
+    if (![image1, image2, image3, image4].some(img => img instanceof File)) {
+      toast.error("Please upload at least one image.");
+      return;
+    }
+
     try{
 
       const formData = new FormData()
@@ -39,10 +44,10 @@ const Add = ({token}) => {
       formData.append("sellername", sellername)
 formData.append("sellerphone", sellerphone)
 
-      image1 && formData.append("image1",image1)
-      image2 && formData.append("image2",image2)
-      image3 && formData.append("image3",image3)
-      image4 && formData.append("image4",image4)
+      if (image1 instanceof File) formData.append("image1", image1);
+      if (image2 instanceof File) formData.append("image2", image2);
+      if (image3 instanceof File) formData.append("image3", image3);
+      if (image4 instanceof File) formData.append("image4", image4);
 
       const response = await axios.post(backendUrl + "/api/product/add",formData,{headers:{token}})
 
@@ -58,10 +63,10 @@ formData.append("sellerphone", sellerphone)
        setSizes([]) // Reset to empty array
        setSellername('') // This was the issue - reset to empty string is correct
        setSellerphone('') // This was the issue - reset to empty string is correct
-       setImage1(false)
-       setImage2(false)
-       setImage3(false)
-       setImage4(false)
+       setImage1(null)
+       setImage2(null)
+       setImage3(null)
+       setImage4(null)
       }else{
         toast.error(response.data.message)
       }

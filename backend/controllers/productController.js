@@ -1,5 +1,11 @@
-import {v2 as cloudinary}  from "cloudinary";
+import { v2 as cloudinary } from "cloudinary";
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 import productModel from "../models/productModel.js";
+import fs from "fs";
 
 
 // function for add product
@@ -23,15 +29,26 @@ const addProduct = async (req, res) => {
     // Handle file uploads
     let imagesUrl = [];
     if (req.files) {
-      // Your existing file upload logic...
-      // Example:
-      // const files = ['image1', 'image2', 'image3', 'image4'];
-      // for (const file of files) {
-      //   if (req.files[file]) {
-      //     // Process and upload file
-      //     imagesUrl.push(uploadedFileUrl);
-      //   }
-      // }
+      const files = ['image1', 'image2', 'image3', 'image4'];
+      for (const file of files) {
+        if (req.files[file]) {
+          try {
+            const result = await cloudinary.uploader.upload(req.files[file][0].path, {
+              folder: "products"
+            });
+            imagesUrl.push(result.secure_url);
+            fs.unlinkSync(req.files[file][0].path); // Clean up local file
+          } catch (err) {
+            console.error("Cloudinary upload error:", err.message, err.stack);
+            return res.status(500).json({ success: false, message: "Image upload failed: " + err.message });
+          }
+        }
+      }
+    }
+
+    // Ensure at least one image is uploaded
+    if (!imagesUrl.length) {
+      return res.status(400).json({ success: false, message: "At least one product image is required." });
     }
 
     // Prepare product data - field names must match schema
@@ -58,7 +75,7 @@ const addProduct = async (req, res) => {
 
     res.json({ success: true, message: "Product added successfully" });
   } catch (error) {
-    console.log("Error in addProduct:", error);
+    console.error("Error in addProduct:", error.message, error.stack);
     res.status(500).json({ success: false, message: error.message });
   }
 };
