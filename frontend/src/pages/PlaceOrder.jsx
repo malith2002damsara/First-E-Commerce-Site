@@ -68,9 +68,15 @@ const PlaceOrder = () => {
           if (cartItems[items][item] > 0) {
             const itemInfo = structuredClone(products.find(product => product._id === items))
             if (itemInfo) {
-              itemInfo.size = item
-              itemInfo.quantity = cartItems[items][item]
-              orderItems.push(itemInfo)
+              orderItems.push({
+                product: itemInfo._id,
+                name: itemInfo.name,
+                image: itemInfo.image,
+                price: itemInfo.price,
+                size: item,
+                quantity: cartItems[items][item],
+                reviewed: false
+              });
             }
           }
         }
