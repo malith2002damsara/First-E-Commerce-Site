@@ -6,80 +6,100 @@ cloudinary.config({
 });
 import productModel from "../models/productModel.js";
 import fs from "fs";
+import path from "path";
 
-
-// function for add product
 const addProduct = async (req, res) => {
   try {
-    // For FormData, text fields are available in req.body
-    // Note: Field names must match what frontend sends: sellername, sellerphone
-    const { name, description, sellername, sellerphone, price, category, subCategory, sizes, bestseller } = req.body;
-
-    console.log("Received data:", req.body); // Debug log
+    const { 
+      name, 
+      description, 
+      sellername, 
+      sellerphone, 
+      price, 
+      category, 
+      subCategory, 
+      sizes, 
+      bestseller 
+    } = req.body;
 
     // Validate required fields
     if (!name || !description || !price || !category || !sizes || !sellername || !sellerphone) {
       return res.status(400).json({ 
         success: false, 
-        message: "Missing required fields",
-        received: { name, description, sellername, sellerphone, price, category, subCategory, sizes, bestseller }
+        message: "All fields are required" 
       });
     }
 
-    // Handle file uploads
-    let imagesUrl = [];
-    if (req.files) {
-      const files = ['image1', 'image2', 'image3', 'image4'];
+    // Handle file uploads to Cloudinary
+    const imageUrls = [];
+    const files = ['image1', 'image2', 'image3', 'image4'];
+    
+    try {
       for (const file of files) {
-        if (req.files[file]) {
-          try {
-            const result = await cloudinary.uploader.upload(req.files[file][0].path, {
-              folder: "products"
-            });
-            imagesUrl.push(result.secure_url);
-            fs.unlinkSync(req.files[file][0].path); // Clean up local file
-          } catch (err) {
-            console.error("Cloudinary upload error:", err.message, err.stack);
-            return res.status(500).json({ success: false, message: "Image upload failed: " + err.message });
-          }
+        if (req.files && req.files[file]) {
+          const filePath = req.files[file][0].path;
+          const result = await cloudinary.uploader.upload(filePath, {
+            folder: "products",
+            resource_type: "image"
+          });
+          imageUrls.push(result.secure_url);
+          
+          // Clean up the temporary file
+          fs.unlink(filePath, (err) => {
+            if (err) console.error(`Error deleting temporary file ${filePath}:`, err);
+          });
         }
       }
+    } catch (uploadError) {
+      console.error("Cloudinary upload error:", uploadError);
+      return res.status(500).json({ 
+        success: false, 
+        message: "Image upload failed" 
+      });
     }
 
-    // Ensure at least one image is uploaded
-    if (!imagesUrl.length) {
-      return res.status(400).json({ success: false, message: "At least one product image is required." });
+    // Ensure at least one image was uploaded
+    if (imageUrls.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "At least one product image is required" 
+      });
     }
 
-    // Prepare product data - field names must match schema
+    // Create product data
     const productData = {
       name: name.trim(),
       description: description.trim(),
-      sellername: sellername.trim(), // Match schema field name
-      sellerphone: sellerphone.trim(), // Match schema field name
+      sellername: sellername.trim(),
+      sellerphone: sellerphone.trim(),
       category,
       price: Number(price),
-      subcategory: subCategory,
+      subcategory: subCategory || 'Topwear', // Default value
       bestSeller: bestseller === 'true' || bestseller === true,
-      sizes: typeof sizes === 'string' ? JSON.parse(sizes) : sizes,
-      image: imagesUrl,
+      sizes: Array.isArray(sizes) ? sizes : JSON.parse(sizes || '[]'),
+      image: imageUrls,
       date: Date.now()
     };
 
-    console.log("Product data to save:", productData); // Debug log
-
+    // Save to database
     const product = new productModel(productData);
     await product.save();
 
-    console.log("Product saved successfully:", product); // Debug log
+    res.status(201).json({ 
+      success: true, 
+      message: "Product added successfully",
+      productId: product._id
+    });
 
-    res.json({ success: true, message: "Product added successfully" });
   } catch (error) {
-    console.error("Error in addProduct:", error.message, error.stack);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error in addProduct:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal server error",
+      error: error.message 
+    });
   }
 };
-
 
 // function for get all products
 
