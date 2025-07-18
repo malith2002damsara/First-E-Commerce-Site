@@ -35,4 +35,10 @@ app.get('/', (req, res) => {
 })
 
 //Listener
-app.listen(port, () => console.log('server start on PORT : ' + port))
+// For local development only:
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => console.log('server start on PORT : ' + port))
+}
+
+// For Vercel serverless deployment:
+export default app;
