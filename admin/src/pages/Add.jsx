@@ -118,7 +118,7 @@ const Add = ({ token }) => {
       const config = {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`
+          'token': token
         },
         timeout: 15000
       };

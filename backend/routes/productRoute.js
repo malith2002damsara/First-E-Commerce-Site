@@ -3,7 +3,8 @@ import {
   addProduct,
   listProducts,
   removeProduct,
-  singleProduct
+  singleProduct,
+  getBestsellerProducts
 } from '../controllers/productController.js';
 import upload from '../middleware/multer.js';
 import adminAuth from "../middleware/adminAuth.js";
@@ -19,6 +20,7 @@ productRouter.post('/add',adminAuth, upload.fields([
 ]), addProduct);
 
 productRouter.get('/list', listProducts);
+productRouter.get('/bestsellers', getBestsellerProducts);
 productRouter.get('/remove', adminAuth, removeProduct);
 productRouter.get('/single', singleProduct);
 
