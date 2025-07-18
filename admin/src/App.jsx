@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import Navbar from './components/Navbar'
-import Login from './components/login'
+import Login from './components/Login'
 import Sidebar from './components/Sidebar'
 import { Route, Routes } from 'react-router-dom'
 import Add from './pages/Add'
