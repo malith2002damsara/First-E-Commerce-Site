@@ -13,13 +13,11 @@ import orderRouter from './routes/orderRoute.js'
 const app = express()
 const port = process.env.PORT || 5000
 
-// Connect to database and cloudinary
-const initializeConnections = async () => {
-  await connectDB()
-  await connectCloudinary()
-}
+// Connect to database
+connectDB()
 
-initializeConnections()
+// Connect to cloudinary
+connectCloudinary()
 
 //Middlewares
 app.use(express.json())

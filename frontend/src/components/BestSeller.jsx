@@ -1,24 +1,15 @@
 import  { useEffect, useState, useContext } from 'react';
 import { ShopContext } from '../context/ShopContext';
-import { useNavigate } from 'react-router-dom';
 import Title from './Title';
 import ProductItem from './ProductItem';
 
 const BestSeller = () => {
   const { products } = useContext(ShopContext); // Use useContext to access the products
   const [bestSeller, setBestSeller] = useState([]);
-  const navigate = useNavigate();
-
-  const testNavigation = () => {
-    console.log('Testing navigation to collection page...');
-    navigate('/collection');
-  };
 
   useEffect(() => {
    // Check if products is defined and has items
-      console.log('Products in BestSeller:', products.length);
       const bestProduct = products.filter((item) => item.bestSeller);
-      console.log('Bestseller products found:', bestProduct.length);
       setBestSeller(bestProduct) // Show all bestseller products instead of limiting to 5
   }, [products]) // Add products as a dependency
 
@@ -29,13 +20,6 @@ const BestSeller = () => {
         <p className='w-3/4 m-auto text-xs sm:text-sm md:text-base text-gray-400'>
           Discover our top-selling products hand-picked for you.
         </p>
-        {/* Test Button */}
-        <button 
-          onClick={testNavigation}
-          className='mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors'
-        >
-          Test Navigation to Collection
-        </button>
       </div>
 
       <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 gap-y-6'>

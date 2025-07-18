@@ -9,18 +9,45 @@ const RelatedProducts = ({category,subCategory}) => {
  
   const {products} = useContext(ShopContext);
   const [related,setRelated]=useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(()=>{
     
     if(products.length > 0){
+       setLoading(true);
 
        let productsCopy = products.slice();
 
-       // Filter by category and subcategory (note: backend uses 'subcategory' not 'subCategory')
-       productsCopy = productsCopy.filter((item)=> category===item.category);
-       productsCopy = productsCopy.filter((item)=> subCategory===item.subcategory);
+       // First priority: Same category and subcategory
+       let sameSubCategory = productsCopy.filter((item)=> 
+         category === item.category && subCategory === item.subcategory
+       );
 
-       setRelated(productsCopy.slice(0,10)); // Show more related products (up to 10)
+       // Second priority: Same category but different subcategory
+       let sameCategory = productsCopy.filter((item)=> 
+         category === item.category && subCategory !== item.subcategory
+       );
+
+       // Third priority: Different category but similar items (bestsellers)
+       let bestsellers = productsCopy.filter((item)=> 
+         category !== item.category && item.bestseller
+       );
+
+       // Fourth priority: All other products if we still need more
+       let otherProducts = productsCopy.filter((item)=> 
+         category !== item.category && !item.bestseller
+       );
+
+       // Combine results with priorities and remove duplicates
+       let combinedResults = [...sameSubCategory, ...sameCategory, ...bestsellers, ...otherProducts];
+       
+       // Remove duplicates based on product ID
+       const uniqueProducts = combinedResults.filter((product, index, self) =>
+         index === self.findIndex((p) => p._id === product._id)
+       );
+
+       setRelated(uniqueProducts.slice(0, 8)); // Show up to 8 related products
+       setLoading(false);
     }
 
   },[products, category, subCategory])
@@ -45,9 +72,13 @@ const RelatedProducts = ({category,subCategory}) => {
         <Title text1={'RELATED'} text2={'PRODUCTS'} />
       </div>
   
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 gap-y-6">
-        {related.length > 0 ? (
-          related.map((item, index) => (
+      {loading ? (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-500"></div>
+        </div>
+      ) : related.length > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 gap-y-6">
+          {related.map((item, index) => (
             <div key={index} onClick={scrollToTop}>
               <ProductItem 
                 id={item._id} 
@@ -56,14 +87,13 @@ const RelatedProducts = ({category,subCategory}) => {
                 image={item.image} 
               />
             </div>
-          ))
-        ) : (
-          <div className='col-span-full text-center text-gray-500 py-8'>
-            <p>No related products found.</p>
-            <p className='text-sm'>Explore our other collections!</p>
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No related products found</p>
+        </div>
+      )}
     </div>
   );
   

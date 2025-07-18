@@ -4,6 +4,7 @@ import { ShopContext } from '../context/ShopContext';
 import {assets} from '../assets/assets'
 import RelatedProducts from '../components/RelatedProducts';
 
+
 const Product = () => {
 
 const {productId}=useParams();

@@ -147,16 +147,4 @@ const singleProduct = async (req, res) => {
 
 }
 
-// function for get bestseller products only
-
-const getBestsellerProducts = async (req, res) => {
-  try {
-    const products = await productModel.find({ bestSeller: true });
-    res.json({ success: true, products });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-export { addProduct, listProducts, removeProduct, singleProduct, getBestsellerProducts }
+export { addProduct, listProducts, removeProduct, singleProduct }

@@ -30,10 +30,8 @@ const Navbar = () => {
         {['Home', 'Collection', 'About', 'Contact'].map((item) => (
           <NavLink
             key={item}
-            to={item === 'Home' ? '/' : `/${item.toLowerCase()}`}
-            className={({ isActive }) => 
-              `flex flex-col items-center gap-1 ${isActive ? 'text-black' : 'text-gray-700'}`
-            }
+            to={item === 'Home' ? './' : `/${item.toLowerCase()}`}
+            className='flex flex-col items-center gap-1'
           >
             <p>{item}</p>
             <hr className='w-2/4 border-none h-[1.5px] bg-gray-700 hidden' />
@@ -93,7 +91,7 @@ const Navbar = () => {
               key={item}
               onClick={() => setVisible(false)}
               className='py-2 pl-6 border-t'
-              to={item === 'Home' ? '/' : `/${item.toLowerCase()}`}
+              to={item === 'Home' ? './' : `/${item.toLowerCase()}`}
             >
               {item}
             </NavLink>

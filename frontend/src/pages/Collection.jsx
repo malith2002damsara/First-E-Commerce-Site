@@ -1,4 +1,4 @@
-import { useContext,useEffect,useState,useCallback } from 'react'
+import { useContext,useEffect,useState } from 'react'
 import { ShopContext } from '../context/ShopContext'
 import {assets} from '../assets/assets'
 import ProductItem from '../components/ProductItem';
@@ -32,7 +32,7 @@ const Collection = () => {
     }
   }
 
-  const applyFilter = useCallback(()=>{
+  const applyFilter =()=>{
     let productsCopy = products.slice();
 
     if(showSearch && search){
@@ -47,9 +47,10 @@ const Collection = () => {
     }
 
     setFilterProducts(productsCopy)
-  }, [products, search, showSearch, category, subCategory])
 
-  const sortProduct = useCallback(()=>{
+  }
+
+  const sortProduct=()=>{
 
     let fpCopy= filterProducts.slice();
 
@@ -67,16 +68,17 @@ const Collection = () => {
         break;
     }
 
-  }, [filterProducts, sortType, applyFilter])
+  }
 
 
   useEffect(()=>{
    applyFilter();
-  },[applyFilter])
+
+  },[category,subCategory,search,showSearch,products])
 
   useEffect(()=>{
     sortProduct();
-  },[sortProduct])
+  },[sortType])
 
 
 
@@ -132,25 +134,16 @@ const Collection = () => {
 
       {/* Right side  */}
       <div className='flex-1'>
-        {/* Products Count */}
-        <div className='flex justify-between text-base sm:text-2xl mb-4'>
-          <p className='text-gray-600'>
-            {filterProducts.length} Product{filterProducts.length !== 1 ? 's' : ''} Found
-          </p>
-        </div>
+       
 
         {/* Map Products */}
+
         <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 gap-y-6'>
-          {filterProducts.length > 0 ? (
+          {
             filterProducts.map((item,index)=>(
-              <ProductItem key={index} name={item.name} id={item._id} price={item.price} image={item.image}/>
+                         <ProductItem key={index} name={item.name} id={item._id} price={item.price} image={item.image}/>
             ))
-          ) : (
-            <div className='col-span-full text-center text-gray-500 py-16'>
-              <p className='text-lg mb-2'>No products found</p>
-              <p className='text-sm'>Try adjusting your search or filter criteria</p>
-            </div>
-          )}
+          }
         </div>
       </div>
     </div>
