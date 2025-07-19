@@ -71,8 +71,47 @@ app.use((err, req, res, next) => {
 // Initialize services and start server if not in Vercel
 if (process.env.VERCEL !== '1') {
   const port = process.env.PORT || 5000;
+  
   initializeServices().then(() => {
-    app.listen(port, () => console.log(`Server running on port ${port}`));
+    const server = app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+      console.log(`Health check: http://localhost:${port}/health`);
+      console.log(`API root: http://localhost:${port}/`);
+    });
+
+    // Handle port already in use error
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${port} is already in use. Trying port ${port + 1}...`);
+        const newPort = port + 1;
+        server.listen(newPort, () => {
+          console.log(`Server running on port ${newPort}`);
+          console.log(`Health check: http://localhost:${newPort}/health`);
+          console.log(`API root: http://localhost:${newPort}/`);
+        });
+      } else {
+        console.error('Server error:', err);
+        process.exit(1);
+      }
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM signal received. Closing server...');
+      server.close(() => {
+        console.log('Server closed.');
+        process.exit(0);
+      });
+    });
+
+    process.on('SIGINT', () => {
+      console.log('SIGINT signal received. Closing server...');
+      server.close(() => {
+        console.log('Server closed.');
+        process.exit(0);
+      });
+    });
+
   }).catch(error => {
     console.error('Failed to start server:', error);
     process.exit(1);
