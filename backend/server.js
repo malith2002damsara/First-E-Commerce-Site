@@ -1,47 +1,41 @@
-import express from 'express'
-import cors from 'cors'
-import 'dotenv/config'
-import connectDB from './config/mongodb.js'
-import connectCloudinary from './config/cloudinary.js'
-import userRouter from './routes/userRoute.js'
-import productRouter from './routes/productRoute.js'
-import cartRouter from './routes/cartRoute.js'
-import orderRouter from './routes/orderRoute.js'
-// import reviewRouter from './routes/reviewRoute.js';
+import express from 'express';
+import cors from 'cors';
+import 'dotenv/config';
+import connectDB from './config/mongodb.js';
+import connectCloudinary from './config/cloudinary.js';
+import userRouter from './routes/userRoute.js';
+import productRouter from './routes/productRoute.js';
+import cartRouter from './routes/cartRoute.js';
+import orderRouter from './routes/orderRoute.js';
 
-//App config
-const app = express()
-const port = process.env.PORT || 5000
+// App config
+const app = express();
+const port = process.env.PORT || 5000;
 
 // Connect to database
-connectDB()
+connectDB();
 
 // Connect to cloudinary
-connectCloudinary()
+connectCloudinary();
 
-//Middlewares
-app.use(express.json())
-app.use(cors())
+// Middlewares
+app.use(express.json());
+app.use(cors());
 
-//API Endpoints
-app.use('/api/user', userRouter)
-app.use('/api/product',productRouter)
-app.use('/api/cart', cartRouter)
-app.use('/api/order', orderRouter)
-// app.use('/api/reviews', reviewRouter)
+// API Endpoints
+app.use('/api/user', userRouter);
+app.use('/api/product', productRouter);
+app.use('/api/cart', cartRouter);
+app.use('/api/order', orderRouter);
 
 app.get('/', (req, res) => {
-  res.send('Api working!')
-})
+  res.send('API working!');
+});
 
-// Listener
-// For local development only:
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(port, () => console.log('server start on PORT : ' + port))
-}
-
-// For Vercel serverless deployment:
-// Vercel expects a default export of the handler function
+// Export the Express app for Vercel (ES module syntax)
 export default app;
-// Optionally, for Vercel compatibility, also export as handler
-export const handler = app;
+
+// Start the server locally when not in production
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => console.log('Server started on PORT: ' + port));
+}
