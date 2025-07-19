@@ -3,6 +3,161 @@ import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
 
+// Helper functions moved outside component to avoid dependency issues
+const calculateMonthlyRevenue = (orders) => {
+  const months = {};
+  const now = new Date();
+  
+  // Initialize last 6 months
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    months[key] = 0;
+  }
+
+  orders.forEach(order => {
+    const orderDate = new Date(order.date);
+    const key = orderDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    if (Object.prototype.hasOwnProperty.call(months, key)) {
+      months[key] += order.amount;
+    }
+  });
+
+  return Object.entries(months).map(([month, revenue]) => ({ month, revenue }));
+};
+
+const calculateWeeklyStats = (orders) => {
+  const weeks = {};
+  const now = new Date();
+  
+  // Initialize last 4 weeks
+  for (let i = 3; i >= 0; i--) {
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - (i * 7) - now.getDay());
+    const key = `Week ${4 - i}`;
+    weeks[key] = 0;
+  }
+
+  orders.forEach(order => {
+    const orderDate = new Date(order.date);
+    const daysDiff = Math.floor((now - orderDate) / (1000 * 60 * 60 * 24));
+    const weekIndex = Math.floor(daysDiff / 7);
+    
+    if (weekIndex < 4) {
+      const key = `Week ${4 - weekIndex}`;
+      if (weeks[key] !== undefined) {
+        weeks[key] += order.amount;
+      }
+    }
+  });
+
+  return Object.entries(weeks).map(([week, revenue]) => ({ week, revenue }));
+};
+
+const calculateYearlyStats = (orders) => {
+  const years = {};
+  const currentYear = new Date().getFullYear();
+  
+  // Initialize last 2 years
+  years[currentYear - 1] = 0;
+  years[currentYear] = 0;
+
+  orders.forEach(order => {
+    const orderYear = new Date(order.date).getFullYear();
+    if (Object.prototype.hasOwnProperty.call(years, orderYear)) {
+      years[orderYear] += order.amount;
+    }
+  });
+
+  return Object.entries(years).map(([year, revenue]) => ({ year, revenue }));
+};
+
+const calculateCategoryStats = (products) => {
+  const categories = {};
+  products.forEach(product => {
+    categories[product.category] = (categories[product.category] || 0) + 1;
+  });
+  return Object.entries(categories).map(([category, count]) => ({ category, count }));
+};
+
+const calculateAnalytics = (products, orders) => {
+  // Ensure we have arrays to work with
+  const safeProducts = Array.isArray(products) ? products : [];
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  
+  // Basic stats
+  const totalProducts = safeProducts.length;
+  const totalOrders = safeOrders.length;
+  const totalRevenue = safeOrders.reduce((sum, order) => {
+    return sum + (order.amount || 0);
+  }, 0);
+  
+  // Get unique sellers
+  const sellers = {};
+  safeProducts.forEach(product => {
+    if (product.sellername) {
+      if (!sellers[product.sellername]) {
+        sellers[product.sellername] = {
+          name: product.sellername,
+          phone: product.sellerphone || '',
+          products: 0,
+          revenue: 0
+        };
+      }
+      sellers[product.sellername].products++;
+    }
+  });
+
+  // Calculate seller revenue from orders
+  safeOrders.forEach(order => {
+    if (order.items && Array.isArray(order.items)) {
+      order.items.forEach(item => {
+        const product = safeProducts.find(p => 
+          p._id === (item.product || item._id) || p.name === item.name
+        );
+        if (product && product.sellername && sellers[product.sellername]) {
+          const itemRevenue = (item.price || 0) * (item.quantity || 0);
+          sellers[product.sellername].revenue += itemRevenue;
+        }
+      });
+    }
+  });
+
+  const topSellers = Object.values(sellers)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 5);
+
+  // Monthly revenue (last 6 months)
+  const monthlyRevenue = calculateMonthlyRevenue(safeOrders);
+  
+  // Weekly revenue (last 4 weeks)
+  const weeklyStats = calculateWeeklyStats(safeOrders);
+  
+  // Yearly revenue (last 2 years)
+  const yearlyStats = calculateYearlyStats(safeOrders);
+
+  // Category stats
+  const categoryStats = calculateCategoryStats(safeProducts);
+
+  // Recent orders (last 5)
+  const recentOrders = safeOrders
+    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+    .slice(0, 5);
+
+  return {
+    totalProducts,
+    totalOrders,
+    totalRevenue,
+    totalSellers: Object.keys(sellers).length,
+    recentOrders,
+    topSellers,
+    monthlyRevenue,
+    categoryStats,
+    weeklyStats,
+    yearlyStats
+  };
+};
+
 const Dashboard = ({ token }) => {
   console.log('Dashboard component rendered with token:', token ? 'present' : 'missing');
   console.log('Backend URL:', backendUrl);
@@ -21,10 +176,6 @@ const Dashboard = ({ token }) => {
   });
   const [loading, setLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState('monthly');
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, [fetchDashboardData]);
 
   const fetchDashboardData = React.useCallback(async () => {
     try {
@@ -60,161 +211,11 @@ const Dashboard = ({ token }) => {
     } finally {
       setLoading(false);
     }
-  }, [token, calculateAnalytics]);
+  }, [token]);
 
-  const calculateAnalytics = React.useCallback((products, orders) => {
-    // Ensure we have arrays to work with
-    const safeProducts = Array.isArray(products) ? products : [];
-    const safeOrders = Array.isArray(orders) ? orders : [];
-    
-    // Basic stats
-    const totalProducts = safeProducts.length;
-    const totalOrders = safeOrders.length;
-    const totalRevenue = safeOrders.reduce((sum, order) => {
-      return sum + (order.amount || 0);
-    }, 0);
-    
-    // Get unique sellers
-    const sellers = {};
-    safeProducts.forEach(product => {
-      if (product.sellername) {
-        if (!sellers[product.sellername]) {
-          sellers[product.sellername] = {
-            name: product.sellername,
-            phone: product.sellerphone || '',
-            products: 0,
-            revenue: 0
-          };
-        }
-        sellers[product.sellername].products++;
-      }
-    });
-
-    // Calculate seller revenue from orders
-    safeOrders.forEach(order => {
-      if (order.items && Array.isArray(order.items)) {
-        order.items.forEach(item => {
-          const product = safeProducts.find(p => 
-            p._id === (item.product || item._id) || p.name === item.name
-          );
-          if (product && product.sellername && sellers[product.sellername]) {
-            const itemRevenue = (item.price || 0) * (item.quantity || 0);
-            sellers[product.sellername].revenue += itemRevenue;
-          }
-        });
-      }
-    });
-
-    const topSellers = Object.values(sellers)
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5);
-
-    // Monthly revenue (last 6 months)
-    const monthlyRevenue = calculateMonthlyRevenue(safeOrders);
-    
-    // Weekly revenue (last 4 weeks)
-    const weeklyStats = calculateWeeklyStats(safeOrders);
-    
-    // Yearly revenue (last 2 years)
-    const yearlyStats = calculateYearlyStats(safeOrders);
-
-    // Category stats
-    const categoryStats = calculateCategoryStats(safeProducts);
-
-    // Recent orders (last 5)
-    const recentOrders = safeOrders
-      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
-      .slice(0, 5);
-
-    return {
-      totalProducts,
-      totalOrders,
-      totalRevenue,
-      totalSellers: Object.keys(sellers).length,
-      recentOrders,
-      topSellers,
-      monthlyRevenue,
-      categoryStats,
-      weeklyStats,
-      yearlyStats
-    };
-  }, []);
-
-  const calculateMonthlyRevenue = (orders) => {
-    const months = {};
-    const now = new Date();
-    
-    // Initialize last 6 months
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-      months[key] = 0;
-    }
-
-    orders.forEach(order => {
-      const orderDate = new Date(order.date);
-      const key = orderDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-      if (Object.prototype.hasOwnProperty.call(months, key)) {
-        months[key] += order.amount;
-      }
-    });
-
-    return Object.entries(months).map(([month, revenue]) => ({ month, revenue }));
-  };
-
-  const calculateWeeklyStats = (orders) => {
-    const weeks = {};
-    const now = new Date();
-    
-    // Initialize last 4 weeks
-    for (let i = 3; i >= 0; i--) {
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - (i * 7) - now.getDay());
-      const key = `Week ${4 - i}`;
-      weeks[key] = 0;
-    }
-
-    orders.forEach(order => {
-      const orderDate = new Date(order.date);
-      const daysDiff = Math.floor((now - orderDate) / (1000 * 60 * 60 * 24));
-      const weekIndex = Math.floor(daysDiff / 7);
-      
-      if (weekIndex < 4) {
-        const key = `Week ${4 - weekIndex}`;
-        if (weeks[key] !== undefined) {
-          weeks[key] += order.amount;
-        }
-      }
-    });
-
-    return Object.entries(weeks).map(([week, revenue]) => ({ week, revenue }));
-  };
-
-  const calculateYearlyStats = (orders) => {
-    const years = {};
-    const currentYear = new Date().getFullYear();
-    
-    // Initialize last 2 years
-    years[currentYear - 1] = 0;
-    years[currentYear] = 0;
-
-    orders.forEach(order => {
-      const orderYear = new Date(order.date).getFullYear();
-      if (Object.prototype.hasOwnProperty.call(years, orderYear)) {
-        years[orderYear] += order.amount;
-      }
-    });
-
-    return Object.entries(years).map(([year, revenue]) => ({ year, revenue }));
-  };
-
-  const calculateCategoryStats = (products) => {
-    const categories = {};
-    products.forEach(product => {
-      categories[product.category] = (categories[product.category] || 0) + 1;
-    });
-    return Object.entries(categories).map(([category, count]) => ({ category, count }));
-  };
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const getTimeFilteredData = () => {
     switch (timeFilter) {

@@ -17,31 +17,31 @@ const Orders = ({ token }) => {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    fetchAllOrders();
-  }, [fetchAllOrders]);
+    const fetchAllOrders = async () => {
+      if (!token) return null;
 
-  const fetchAllOrders = React.useCallback(async () => {
-    if (!token) return null;
-
-    setIsLoading(true);
-    try {
-      const response = await axios.post(
-        backendUrl + '/api/order/list',
-        {},
-        { headers: { token } }
-      );
-      if (response.data.success) {
-        const reversedOrders = response.data.orders.reverse();
-        setOrders(reversedOrders);
-        setFilteredOrders(reversedOrders);
-      } else {
-        toast.error(response.data.message);
+      setIsLoading(true);
+      try {
+        const response = await axios.post(
+          backendUrl + '/api/order/list',
+          {},
+          { headers: { token } }
+        );
+        if (response.data.success) {
+          const reversedOrders = response.data.orders.reverse();
+          setOrders(reversedOrders);
+          setFilteredOrders(reversedOrders);
+        } else {
+          toast.error(response.data.message);
+        }
+      } catch (error) {
+        toast.error(error.message);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      toast.error(error.message);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    fetchAllOrders();
   }, [token]);
 
   const statusHandler = async (event, orderId) => {
@@ -52,7 +52,17 @@ const Orders = ({ token }) => {
         { headers: { token } }
       );
       if (response.data.success) {
-        await fetchAllOrders();
+        // Update the local state instead of refetching all orders
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order._id === orderId ? { ...order, status: event.target.value } : order
+          )
+        );
+        setFilteredOrders(prevOrders => 
+          prevOrders.map(order => 
+            order._id === orderId ? { ...order, status: event.target.value } : order
+          )
+        );
         toast.success(`Order status updated to ${event.target.value}`);
       }
     } catch (error) {

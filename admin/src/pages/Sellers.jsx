@@ -3,6 +3,59 @@ import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
 
+// Helper function moved outside component to avoid dependency issues
+const calculateSellersData = (products, orders) => {
+  const sellersMap = {};
+
+  // Initialize sellers from products
+  products.forEach(product => {
+    if (!sellersMap[product.sellername]) {
+      sellersMap[product.sellername] = {
+        name: product.sellername,
+        phone: product.sellerphone,
+        products: [],
+        totalProducts: 0,
+        totalRevenue: 0,
+        totalOrders: 0,
+        categories: new Set(),
+        averagePrice: 0,
+        joinDate: product.date || Date.now()
+      };
+    }
+    
+    sellersMap[product.sellername].products.push(product);
+    sellersMap[product.sellername].totalProducts++;
+    sellersMap[product.sellername].categories.add(product.category);
+  });
+
+  // Calculate revenue and orders from order data
+  orders.forEach(order => {
+    if (order.items && Array.isArray(order.items)) {
+      order.items.forEach(item => {
+        const product = products.find(p => 
+          p._id === (item.product || item._id) || p.name === item.name
+        );
+        
+        if (product && sellersMap[product.sellername]) {
+          const itemRevenue = (item.price || 0) * (item.quantity || 0);
+          sellersMap[product.sellername].totalRevenue += itemRevenue;
+          sellersMap[product.sellername].totalOrders++;
+        }
+      });
+    }
+  });
+
+  // Calculate average price and format data
+  return Object.values(sellersMap).map(seller => {
+    const totalPrice = seller.products.reduce((sum, product) => sum + product.price, 0);
+    seller.averagePrice = seller.totalProducts > 0 ? totalPrice / seller.totalProducts : 0;
+    seller.categories = Array.from(seller.categories);
+    seller.joinDate = new Date(seller.joinDate);
+    
+    return seller;
+  });
+};
+
 const Sellers = ({ token }) => {
   const [sellers, setSellers] = useState([]);
   const [filteredSellers, setFilteredSellers] = useState([]);
@@ -11,127 +64,75 @@ const Sellers = ({ token }) => {
   const [sortBy, setSortBy] = useState('revenue'); // revenue, products, orders, name
 
   useEffect(() => {
+    const fetchSellersData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch products
+        const productsRes = await axios.get(`${backendUrl}/api/product/list`);
+        
+        // Fetch orders
+        const ordersRes = await axios.post(
+          `${backendUrl}/api/order/list`,
+          {},
+          { headers: { token } }
+        );
+
+        if (productsRes.data.success && ordersRes.data.success) {
+          const products = productsRes.data.products || [];
+          const orders = ordersRes.data.orders || [];
+          
+          const sellersData = calculateSellersData(products, orders);
+          setSellers(sellersData);
+          setFilteredSellers(sellersData);
+        } else {
+          toast.error('Failed to load sellers data');
+        }
+      } catch (error) {
+        console.error('Error fetching sellers data:', error);
+        toast.error('Failed to load sellers data: ' + error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchSellersData();
-  }, [fetchSellersData]);
+  }, [token]);
 
   useEffect(() => {
+    const filterAndSortSellers = () => {
+      let filtered = [...sellers];
+
+      // Apply search filter
+      if (searchTerm) {
+        filtered = filtered.filter(seller =>
+          seller.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          seller.phone.includes(searchTerm)
+        );
+      }
+
+      // Apply sorting
+      filtered.sort((a, b) => {
+        switch (sortBy) {
+          case 'revenue':
+            return b.totalRevenue - a.totalRevenue;
+          case 'products':
+            return b.totalProducts - a.totalProducts;
+          case 'orders':
+            return b.totalOrders - a.totalOrders;
+          case 'name':
+            return a.name.localeCompare(b.name);
+          case 'joinDate':
+            return b.joinDate - a.joinDate;
+          default:
+            return b.totalRevenue - a.totalRevenue;
+        }
+      });
+
+      setFilteredSellers(filtered);
+    };
+
     filterAndSortSellers();
-  }, [filterAndSortSellers]);
-
-  const fetchSellersData = React.useCallback(async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch products
-      const productsRes = await axios.get(`${backendUrl}/api/product/list`);
-      
-      // Fetch orders
-      const ordersRes = await axios.post(
-        `${backendUrl}/api/order/list`,
-        {},
-        { headers: { token } }
-      );
-
-      if (productsRes.data.success && ordersRes.data.success) {
-        const products = productsRes.data.products || [];
-        const orders = ordersRes.data.orders || [];
-        
-        const sellersData = calculateSellersData(products, orders);
-        setSellers(sellersData);
-        setFilteredSellers(sellersData);
-      } else {
-        toast.error('Failed to load sellers data');
-      }
-    } catch (error) {
-      console.error('Error fetching sellers data:', error);
-      toast.error('Failed to load sellers data: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [token, calculateSellersData]);
-
-  const calculateSellersData = React.useCallback((products, orders) => {
-    const sellersMap = {};
-
-    // Initialize sellers from products
-    products.forEach(product => {
-      if (!sellersMap[product.sellername]) {
-        sellersMap[product.sellername] = {
-          name: product.sellername,
-          phone: product.sellerphone,
-          products: [],
-          totalProducts: 0,
-          totalRevenue: 0,
-          totalOrders: 0,
-          categories: new Set(),
-          averagePrice: 0,
-          joinDate: product.date || Date.now()
-        };
-      }
-      
-      sellersMap[product.sellername].products.push(product);
-      sellersMap[product.sellername].totalProducts++;
-      sellersMap[product.sellername].categories.add(product.category);
-    });
-
-    // Calculate revenue and orders from order data
-    orders.forEach(order => {
-      if (order.items && Array.isArray(order.items)) {
-        order.items.forEach(item => {
-          const product = products.find(p => 
-            p._id === (item.product || item._id) || p.name === item.name
-          );
-          
-          if (product && sellersMap[product.sellername]) {
-            const itemRevenue = (item.price || 0) * (item.quantity || 0);
-            sellersMap[product.sellername].totalRevenue += itemRevenue;
-            sellersMap[product.sellername].totalOrders++;
-          }
-        });
-      }
-    });
-
-    // Calculate average price and format data
-    return Object.values(sellersMap).map(seller => {
-      const totalPrice = seller.products.reduce((sum, product) => sum + product.price, 0);
-      seller.averagePrice = seller.totalProducts > 0 ? totalPrice / seller.totalProducts : 0;
-      seller.categories = Array.from(seller.categories);
-      seller.joinDate = new Date(seller.joinDate);
-      
-      return seller;
-    });
-  }, []);
-
-  const filterAndSortSellers = React.useCallback(() => {
-    let filtered = [...sellers];
-
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(seller =>
-        seller.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        seller.phone.includes(searchTerm)
-      );
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'revenue':
-          return b.totalRevenue - a.totalRevenue;
-        case 'products':
-          return b.totalProducts - a.totalProducts;
-        case 'orders':
-          return b.totalOrders - a.totalOrders;
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'joinDate':
-          return b.joinDate - a.joinDate;
-        default:
-          return b.totalRevenue - a.totalRevenue;
-      }
-    });
-
-    setFilteredSellers(filtered);
   }, [searchTerm, sortBy, sellers]);
 
   const getPerformanceRating = (seller) => {

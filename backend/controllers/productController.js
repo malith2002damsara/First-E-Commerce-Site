@@ -150,4 +150,114 @@ const singleProduct = async (req, res) => {
 
 }
 
-export { addProduct, listProducts, removeProduct, singleProduct }
+// function for update product
+
+const updateProduct = async (req, res) => {
+  try {
+    const { 
+      id,
+      name, 
+      description, 
+      sellername, 
+      sellerphone, 
+      price, 
+      category, 
+      subCategory, 
+      sizes, 
+      bestseller 
+    } = req.body;
+
+    // Validate required fields
+    if (!id) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Product ID is required" 
+      });
+    }
+
+    // Find the existing product
+    const existingProduct = await productModel.findById(id);
+    if (!existingProduct) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Product not found" 
+      });
+    }
+
+    // Handle new image uploads if provided
+    let imageUrls = existingProduct.image; // Keep existing images by default
+    const files = ['image1', 'image2', 'image3', 'image4'];
+    const newImageUrls = [];
+    
+    try {
+      for (const file of files) {
+        if (req.files && req.files[file] && req.files[file][0]) {
+          const fileBuffer = req.files[file][0].buffer;
+          
+          // Upload buffer directly to Cloudinary
+          const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream(
+              {
+                folder: "products",
+                resource_type: "image"
+              },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+              }
+            ).end(fileBuffer);
+          });
+          
+          newImageUrls.push(result.secure_url);
+        }
+      }
+
+      // If new images were uploaded, use them; otherwise keep existing ones
+      if (newImageUrls.length > 0) {
+        imageUrls = newImageUrls;
+      }
+    } catch (uploadError) {
+      return res.status(500).json({ 
+        success: false, 
+        message: "Image upload failed: " + uploadError.message 
+      });
+    }
+
+    // Prepare update data (only include fields that are provided)
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (sellername !== undefined) updateData.sellerName = sellername;
+    if (sellerphone !== undefined) updateData.sellerPhone = sellerphone;
+    if (price !== undefined) updateData.price = Number(price);
+    if (category !== undefined) updateData.category = category;
+    if (subCategory !== undefined) updateData.subcategory = subCategory;
+    if (sizes !== undefined) updateData.sizes = JSON.parse(sizes);
+    if (bestseller !== undefined) updateData.bestseller = bestseller === "true";
+    updateData.image = imageUrls;
+    updateData.date = Date.now();
+
+    // Update the product
+    const updatedProduct = await productModel.findByIdAndUpdate(
+      id, 
+      updateData, 
+      { new: true }
+    );
+
+    res.json({
+      success: true, 
+      message: "Product updated successfully",
+      product: updatedProduct
+    });
+
+  } catch (error) {
+    console.log("Update product error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Internal server error: " + error.message,
+      error: error.message 
+    });
+  }
+};
+
+export { addProduct, listProducts, removeProduct, singleProduct, updateProduct }

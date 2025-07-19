@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Navbar from './components/Navbar';
@@ -13,7 +13,8 @@ import List from './pages/List';
 import Orders from './pages/Orders';
 import TestPage from './pages/TestPage';
 
-export const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
+
+export const backendUrl = import.meta.env.VITE_BACKEND_URL;
 export const currency = 'LKR';
 
 const App = () => {
@@ -36,7 +37,8 @@ const App = () => {
             <Sidebar />
             <div className="w-[70%] mx-auto ml-[max(5vw,25px)] my-8 text-gray-600 text-base">
               <Routes>
-                <Route path="/" element={<Dashboard token={token} />} />
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<Dashboard token={token} />} />
                 <Route path="/analytics" element={<Analytics token={token} />} />
                 <Route path="/sellers" element={<Sellers token={token} />} />
                 <Route path="/add" element={<Add token={token} />} />
