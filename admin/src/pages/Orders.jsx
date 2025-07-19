@@ -16,7 +16,11 @@ const Orders = ({ token }) => {
   });
   const [showFilters, setShowFilters] = useState(false);
 
-  const fetchAllOrders = async () => {
+  useEffect(() => {
+    fetchAllOrders();
+  }, [fetchAllOrders]);
+
+  const fetchAllOrders = React.useCallback(async () => {
     if (!token) return null;
 
     setIsLoading(true);
@@ -38,7 +42,7 @@ const Orders = ({ token }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [token]);
 
   const statusHandler = async (event, orderId) => {
     try {
@@ -90,7 +94,6 @@ const Orders = ({ token }) => {
           monthAgo.setMonth(monthAgo.getMonth() - 1);
           result = result.filter(order => new Date(order.date) >= monthAgo);
           break;
-          
         }
         default:
           break;
@@ -110,10 +113,6 @@ const Orders = ({ token }) => {
     setFilteredOrders(orders);
     setShowFilters(false);
   };
-
-  useEffect(() => {
-    fetchAllOrders();
-  }, [token]);
 
   const paymentMethods = [...new Set(orders.map(order => order.paymentMethod))];
   const statusOptions = ['Order Placed', 'Packing', 'Shipped', 'Out for delivery', 'Delivered'];
