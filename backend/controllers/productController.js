@@ -1,15 +1,24 @@
 import { v2 as cloudinary } from "cloudinary";
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 import productModel from "../models/productModel.js";
 import fs from "fs";
 import path from "path";
 
+// Ensure Cloudinary is configured
+const ensureCloudinaryConfig = () => {
+  if (!cloudinary.config().cloud_name) {
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_SECRET_KEY,
+    });
+  }
+};
+
 const addProduct = async (req, res) => {
   try {
+    // Ensure Cloudinary is configured
+    ensureCloudinaryConfig();
+
     const { 
       name, 
       description, 
