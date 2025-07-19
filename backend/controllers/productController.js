@@ -1,12 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 import productModel from "../models/productModel.js";
-import fs from "fs";
-import path from "path";
 
 const addProduct = async (req, res) => {
   try {
@@ -30,31 +23,37 @@ const addProduct = async (req, res) => {
       });
     }
 
-    // Handle file uploads to Cloudinary
+    // Handle file uploads to Cloudinary using memory storage
     const imageUrls = [];
     const files = ['image1', 'image2', 'image3', 'image4'];
     
     try {
       for (const file of files) {
-        if (req.files && req.files[file]) {
-          const filePath = req.files[file][0].path;
-          const result = await cloudinary.uploader.upload(filePath, {
-            folder: "products",
-            resource_type: "image"
-          });
-          imageUrls.push(result.secure_url);
+        if (req.files && req.files[file] && req.files[file][0]) {
+          const fileBuffer = req.files[file][0].buffer;
           
-          // Clean up the temporary file
-          fs.unlink(filePath, (err) => {
-            if (err) console.error(`Error deleting temporary file ${filePath}:`, err);
+          // Upload buffer directly to Cloudinary
+          const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream(
+              {
+                folder: "products",
+                resource_type: "image"
+              },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+              }
+            ).end(fileBuffer);
           });
+          
+          imageUrls.push(result.secure_url);
         }
       }
     } catch (uploadError) {
       console.error("Cloudinary upload error:", uploadError);
       return res.status(500).json({ 
         success: false, 
-        message: "Image upload failed" 
+        message: "Image upload failed: " + uploadError.message 
       });
     }
 
@@ -81,9 +80,13 @@ const addProduct = async (req, res) => {
       date: Date.now()
     };
 
+    console.log("Product data to save:", productData); // Debug log
+
     // Save to database
     const product = new productModel(productData);
     await product.save();
+
+    console.log("Product saved successfully:", product._id); // Debug log
 
     res.status(201).json({ 
       success: true, 
@@ -95,7 +98,7 @@ const addProduct = async (req, res) => {
     console.error("Error in addProduct:", error);
     res.status(500).json({ 
       success: false, 
-      message: "Internal server error",
+      message: "Internal server error: " + error.message,
       error: error.message 
     });
   }

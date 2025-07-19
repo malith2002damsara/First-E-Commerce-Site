@@ -23,6 +23,31 @@ connectCloudinary()
 app.use(express.json())
 app.use(cors())
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server Error:', err);
+  
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      success: false,
+      message: 'File size too large'
+    });
+  }
+  
+  if (err.message && err.message.includes('Only images')) {
+    return res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+  
+  res.status(500).json({
+    success: false,
+    message: 'Server error occurred',
+    error: err.message
+  });
+});
+
 //API Endpoints
 app.use('/api/user', userRouter)
 app.use('/api/product',productRouter)
