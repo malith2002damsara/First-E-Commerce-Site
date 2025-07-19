@@ -1,122 +1,44 @@
-import express from 'express';
-import cors from 'cors';
-import 'dotenv/config';
-import connectDB from './config/mongodb.js';
-import connectCloudinary from './config/cloudinary.js';
-import userRouter from './routes/userRoute.js';
-import productRouter from './routes/productRoute.js';
-import cartRouter from './routes/cartRoute.js';
-import orderRouter from './routes/orderRoute.js';
+import express from 'express'
+import cors from 'cors'
+import 'dotenv/config'
+import connectDB from './config/mongodb.js'
+import connectCloudinary from './config/cloudinary.js'
+import userRouter from './routes/userRoute.js'
+import productRouter from './routes/productRoute.js'
+import cartRouter from './routes/cartRoute.js'
+import orderRouter from './routes/orderRoute.js'
+// import reviewRouter from './routes/reviewRoute.js';
 
-const app = express();
+//App config
+const app = express()
+const port = process.env.PORT || 5000
 
-// Middlewares
-app.use(express.json());
-app.use(cors());
+// Connect to database
+connectDB()
 
-// Global connection status
-let isInitialized = false;
+// Connect to cloudinary
+connectCloudinary()
 
-// Connect to services for Vercel
-async function initializeServices() {
-  if (!isInitialized) {
-    try {
-      await connectDB();
-      await connectCloudinary();
-      isInitialized = true;
-      console.log('Services connected successfully');
-    } catch (error) {
-      console.error('Failed to connect to services:', error);
-      throw error;
-    }
-  }
-}
+//Middlewares
+app.use(express.json())
+app.use(cors())
 
-// Middleware to ensure services are initialized
-app.use(async (req, res, next) => {
-  try {
-    await initializeServices();
-    next();
-  } catch (error) {
-    console.error('Service initialization failed:', error);
-    res.status(500).json({ success: false, message: 'Service initialization failed' });
-  }
-});
-
-// API Endpoints
-app.use('/api/user', userRouter);
-app.use('/api/product', productRouter);
-app.use('/api/cart', cartRouter);
-app.use('/api/order', orderRouter);
+//API Endpoints
+app.use('/api/user', userRouter)
+app.use('/api/product',productRouter)
+app.use('/api/cart', cartRouter)
+app.use('/api/order', orderRouter)
+// app.use('/api/reviews', reviewRouter)
 
 app.get('/', (req, res) => {
-  res.json({ success: true, message: 'API working!' });
-});
+  res.send('Api working!')
+})
 
-app.get('/health', (req, res) => {
-  res.json({ 
-    success: true, 
-    message: 'Server is healthy',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err.stack);
-  res.status(500).json({ success: false, message: 'Internal server error' });
-});
-
-// Initialize services and start server if not in Vercel
-if (process.env.VERCEL !== '1') {
-  const port = process.env.PORT || 5000;
-  
-  initializeServices().then(() => {
-    const server = app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
-      console.log(`Health check: http://localhost:${port}/health`);
-      console.log(`API root: http://localhost:${port}/`);
-    });
-
-    // Handle port already in use error
-    server.on('error', (err) => {
-      if (err.code === 'EADDRINUSE') {
-        console.error(`Port ${port} is already in use. Trying port ${port + 1}...`);
-        const newPort = port + 1;
-        server.listen(newPort, () => {
-          console.log(`Server running on port ${newPort}`);
-          console.log(`Health check: http://localhost:${newPort}/health`);
-          console.log(`API root: http://localhost:${newPort}/`);
-        });
-      } else {
-        console.error('Server error:', err);
-        process.exit(1);
-      }
-    });
-
-    // Graceful shutdown
-    process.on('SIGTERM', () => {
-      console.log('SIGTERM signal received. Closing server...');
-      server.close(() => {
-        console.log('Server closed.');
-        process.exit(0);
-      });
-    });
-
-    process.on('SIGINT', () => {
-      console.log('SIGINT signal received. Closing server...');
-      server.close(() => {
-        console.log('Server closed.');
-        process.exit(0);
-      });
-    });
-
-  }).catch(error => {
-    console.error('Failed to start server:', error);
-    process.exit(1);
-  });
+//Listener
+// For local development only:
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => console.log('server start on PORT : ' + port))
 }
 
-// Export for Vercel
+// For Vercel serverless deployment:
 export default app;

@@ -1,23 +1,15 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import os from 'os';
 
-// For Vercel deployment, use temporary directory
-const getUploadDir = () => {
-  if (process.env.VERCEL) {
-    return os.tmpdir();
-  }
-  const uploadDir = 'uploads';
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
-  return uploadDir;
-};
+// Ensure uploads directory exists
+const uploadDir = 'uploads';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = getUploadDir();
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
