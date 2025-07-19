@@ -34,11 +34,14 @@ app.get('/', (req, res) => {
   res.send('Api working!')
 })
 
-//Listener
+// Listener
 // For local development only:
 if (process.env.NODE_ENV !== 'production') {
   app.listen(port, () => console.log('server start on PORT : ' + port))
 }
 
 // For Vercel serverless deployment:
+// Vercel expects a default export of the handler function
 export default app;
+// Optionally, for Vercel compatibility, also export as handler
+export const handler = app;
