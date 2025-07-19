@@ -8,19 +8,23 @@ import productRouter from './routes/productRoute.js';
 import cartRouter from './routes/cartRoute.js';
 import orderRouter from './routes/orderRoute.js';
 
-// App config
 const app = express();
-const port = process.env.PORT || 5000;
-
-// Connect to database
-connectDB();
-
-// Connect to cloudinary
-connectCloudinary();
 
 // Middlewares
 app.use(express.json());
 app.use(cors());
+
+// Connect to services
+async function initialize() {
+  try {
+    await connectDB();
+    await connectCloudinary();
+    console.log('Services connected successfully');
+  } catch (error) {
+    console.error('Failed to connect to services:', error);
+    process.exit(1);
+  }
+}
 
 // API Endpoints
 app.use('/api/user', userRouter);
@@ -32,10 +36,19 @@ app.get('/', (req, res) => {
   res.send('API working!');
 });
 
-// Export the Express app for Vercel (ES module syntax)
-export default app;
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+});
 
-// Start the server locally when not in production
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(port, () => console.log('Server started on PORT: ' + port));
+// Initialize services and start server if not in Vercel
+if (process.env.VERCEL !== '1') {
+  const port = process.env.PORT || 5000;
+  initialize().then(() => {
+    app.listen(port, () => console.log(`Server running on port ${port}`));
+  });
 }
+
+// Export for Vercel
+export default app;
