@@ -80,6 +80,65 @@ const calculateCategoryStats = (products) => {
   return Object.entries(categories).map(([category, count]) => ({ category, count }));
 };
 
+// Mock data for development/fallback
+const mockData = {
+  totalProducts: 25,
+  totalOrders: 156,
+  totalRevenue: 450000,
+  totalSellers: 8,
+  recentOrders: [
+    {
+      date: new Date(),
+      amount: 15000,
+      items: [{ name: 'Sample Product' }],
+      status: 'Order Placed'
+    },
+    {
+      date: new Date(Date.now() - 86400000),
+      amount: 22000,
+      items: [{ name: 'Sample Product' }, { name: 'Another Product' }],
+      status: 'Delivered'
+    }
+  ],
+  topSellers: [
+    {
+      name: 'John Doe',
+      phone: '0771234567',
+      products: 12,
+      revenue: 85000
+    },
+    {
+      name: 'Jane Smith',
+      phone: '0779876543',
+      products: 8,
+      revenue: 65000
+    }
+  ],
+  monthlyRevenue: [
+    { month: 'Jan 2025', revenue: 75000 },
+    { month: 'Feb 2025', revenue: 85000 },
+    { month: 'Mar 2025', revenue: 95000 },
+    { month: 'Apr 2025', revenue: 110000 },
+    { month: 'May 2025', revenue: 125000 },
+    { month: 'Jun 2025', revenue: 135000 }
+  ],
+  categoryStats: [
+    { category: 'Men', count: 15 },
+    { category: 'Women', count: 10 },
+    { category: 'Kids', count: 5 }
+  ],
+  weeklyStats: [
+    { week: 'Week 1', revenue: 25000 },
+    { week: 'Week 2', revenue: 30000 },
+    { week: 'Week 3', revenue: 35000 },
+    { week: 'Week 4', revenue: 40000 }
+  ],
+  yearlyStats: [
+    { year: 2024, revenue: 850000 },
+    { year: 2025, revenue: 450000 }
+  ]
+};
+
 const calculateAnalytics = (products, orders) => {
   // Ensure we have arrays to work with
   const safeProducts = Array.isArray(products) ? products : [];
@@ -176,38 +235,89 @@ const Dashboard = ({ token }) => {
   });
   const [loading, setLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState('monthly');
+  const [connectionError, setConnectionError] = useState(false);
 
   const fetchDashboardData = React.useCallback(async () => {
     try {
       setLoading(true);
+      setConnectionError(false);
+      
+      console.log('Fetching dashboard data...');
+      console.log('Backend URL:', backendUrl);
+      console.log('Token available:', !!token);
+      
+      // Test backend connection first
+      const healthCheck = await axios.get(`${backendUrl}/`, { timeout: 5000 });
+      console.log('Backend health check:', healthCheck.data);
       
       // Fetch products
-      const productsRes = await axios.get(`${backendUrl}/api/product/list`);
+      console.log('Fetching products...');
+      const productsRes = await axios.get(`${backendUrl}/api/product/list`, { timeout: 10000 });
+      console.log('Products response:', productsRes.data);
       
       // Fetch orders
+      console.log('Fetching orders...');
       const ordersRes = await axios.post(
         `${backendUrl}/api/order/list`,
         {},
-        { headers: { token } }
+        { 
+          headers: { token },
+          timeout: 10000
+        }
       );
+      console.log('Orders response:', ordersRes.data);
 
       if (productsRes.data.success && ordersRes.data.success) {
         const products = productsRes.data.products || [];
         const orders = ordersRes.data.orders || [];
 
+        console.log('Data received:', { 
+          productsCount: products.length, 
+          ordersCount: orders.length 
+        });
+
         // Calculate analytics
         const analytics = calculateAnalytics(products, orders);
         setDashboardData(analytics);
+        toast.success('Dashboard data loaded successfully');
       } else {
         console.error('API Error:', { 
           products: productsRes.data, 
           orders: ordersRes.data 
         });
-        toast.error('Failed to load dashboard data');
+        toast.error('Failed to load dashboard data: API returned error');
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      toast.error('Failed to load dashboard data: ' + error.message);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method
+        }
+      });
+      
+      setConnectionError(true);
+      
+      // Use mock data as fallback for development
+      console.log('Using mock data as fallback...');
+      setDashboardData(mockData);
+      
+      if (error.code === 'ECONNREFUSED' || error.code === 'ECONNABORTED') {
+        toast.error('Backend server not available. Showing demo data.');
+      } else if (error.response) {
+        if (error.response.status === 401) {
+          toast.error('Unauthorized: Please login again');
+        } else {
+          toast.error(`Server Error (${error.response.status}): ${error.response.data?.message || 'Unknown error'}`);
+        }
+      } else if (error.request) {
+        toast.error('Network Error: Cannot reach the server. Showing demo data.');
+      } else {
+        toast.error('Error: ' + error.message + '. Showing demo data.');
+      }
     } finally {
       setLoading(false);
     }
@@ -251,10 +361,43 @@ const Dashboard = ({ token }) => {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-7xl mx-auto">
+        {/* Connection Warning Banner */}
+        {connectionError && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-yellow-800">Backend Connection Issue</p>
+                <p className="text-sm text-yellow-700">Cannot connect to backend server. Showing demo data. Start backend: <code className="bg-yellow-100 px-1 rounded">cd backend && npm start</code></p>
+              </div>
+              <button
+                onClick={fetchDashboardData}
+                className="ml-4 px-3 py-1 bg-yellow-600 text-white text-sm rounded-md hover:bg-yellow-700"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Dashboard</h1>
-          <p className="text-gray-600">Overview of your business performance</p>
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-800 mb-2">Dashboard</h1>
+            <p className="text-gray-600">Overview of your business performance</p>
+          </div>
+          <button
+            onClick={fetchDashboardData}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            {loading ? 'Refreshing...' : 'Refresh Data'}
+          </button>
         </div>
 
         {/* Stats Cards */}

@@ -43,7 +43,20 @@ const Analytics = ({ token }) => {
       }
     } catch (error) {
       console.error('Error fetching analytics data:', error);
-      toast.error('Failed to load analytics data: ' + error.message);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: error.config
+      });
+      
+      if (error.response) {
+        toast.error(`Server Error: ${error.response.data?.message || error.response.status}`);
+      } else if (error.request) {
+        toast.error('Network Error: Cannot connect to server. Make sure backend is running on port 5000.');
+      } else {
+        toast.error('Error: ' + error.message);
+      }
     } finally {
       setLoading(false);
     }

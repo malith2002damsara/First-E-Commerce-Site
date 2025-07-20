@@ -70,15 +70,21 @@ const EditSeller = ({ seller, onClose, onUpdate, token }) => {
       }
     } catch (error) {
       console.error('Error updating seller:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        config: error.config
+      });
       
       if (error.response) {
         if (error.response.status === 401) {
           toast.error('Unauthorized: Please login again');
         } else {
-          toast.error(error.response.data?.message || 'Server error occurred');
+          toast.error(error.response.data?.message || `Server Error: ${error.response.status}`);
         }
       } else if (error.request) {
-        toast.error('Network error: Please check your connection');
+        toast.error('Network Error: Cannot connect to server. Make sure backend is running on port 5000.');
       } else {
         toast.error('Error: ' + error.message);
       }

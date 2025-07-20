@@ -3,7 +3,7 @@ import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
 import EditSeller from '../components/EditSeller';
-import { FiEdit2, FiTrash2, FiPlus, FiSearch, FiUsers } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiSearch, FiUsers } from 'react-icons/fi';
 
 const Sellers = ({ token }) => {
   const [sellers, setSellers] = useState([]);
@@ -12,41 +12,20 @@ const Sellers = ({ token }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [newSeller, setNewSeller] = useState({
-    name: '',
-    phone: ''
-  });
-  const [showAddForm, setShowAddForm] = useState(false);
 
   const fetchSellers = async () => {
     try {
       setIsLoading(true);
-      // Get sellers from products
-      const response = await axios.get(`${backendUrl}/api/product/list`);
+      // Use dedicated sellers API endpoint
+      const response = await axios.get(`${backendUrl}/api/seller/list`);
       
       if (response.data.success) {
-        const products = response.data.products;
-        // Extract unique sellers from products
-        const sellersMap = {};
-        
-        products.forEach(product => {
-          if (product.sellername && !sellersMap[product.sellername]) {
-            sellersMap[product.sellername] = {
-              name: product.sellername,
-              phone: product.sellerphone || '',
-              productCount: 0,
-              totalRevenue: 0
-            };
-          }
-          if (product.sellername) {
-            sellersMap[product.sellername].productCount++;
-            sellersMap[product.sellername].totalRevenue += Number(product.price) || 0;
-          }
-        });
-
-        const sellersArray = Object.values(sellersMap);
-        setSellers(sellersArray);
-        setFilteredSellers(sellersArray);
+        const sellersData = response.data.sellers.map(seller => ({
+          ...seller,
+          totalRevenue: 0 // We'll calculate this from orders if needed
+        }));
+        setSellers(sellersData);
+        setFilteredSellers(sellersData);
       } else {
         toast.error('Failed to fetch sellers');
       }
@@ -76,66 +55,27 @@ const Sellers = ({ token }) => {
     setIsEditModalOpen(true);
   };
 
-  const handleAddSeller = async (e) => {
-    e.preventDefault();
-    
-    if (!newSeller.name.trim()) {
-      toast.error('Seller name is required');
-      return;
-    }
-    if (!/^\d{10}$/.test(newSeller.phone)) {
-      toast.error('Please enter a valid 10-digit phone number');
-      return;
-    }
-
-    // Check if seller already exists
-    const existingSeller = sellers.find(s => s.name.toLowerCase() === newSeller.name.toLowerCase());
-    if (existingSeller) {
-      toast.error('Seller with this name already exists');
-      return;
-    }
-
-    try {
-      // For now, we'll add it to local state since we don't have a dedicated sellers API
-      const newSellerData = {
-        name: newSeller.name.trim(),
-        phone: newSeller.phone.trim(),
-        productCount: 0,
-        totalRevenue: 0
-      };
-
-      setSellers(prev => [...prev, newSellerData]);
-      setFilteredSellers(prev => [...prev, newSellerData]);
-      
-      setNewSeller({ name: '', phone: '' });
-      setShowAddForm(false);
-      toast.success('Seller added successfully');
-    } catch (error) {
-      console.error('Error adding seller:', error);
-      toast.error('Error adding seller');
-    }
-  };
-
   const handleDeleteSeller = async (sellerName) => {
-    if (!window.confirm(`Are you sure you want to delete seller "${sellerName}"? This will also affect all products by this seller.`)) {
+    if (!window.confirm(`Are you sure you want to delete seller "${sellerName}"? This will also delete all products by this seller.`)) {
       return;
     }
 
     try {
-      // Check if seller has products
-      const sellerProducts = sellers.find(s => s.name === sellerName);
-      if (sellerProducts && sellerProducts.productCount > 0) {
-        toast.warning('Cannot delete seller with existing products. Please remove all products first.');
-        return;
-      }
+      const response = await axios.post(
+        `${backendUrl}/api/seller/delete`,
+        { sellerName },
+        { headers: { token } }
+      );
 
-      // Remove from local state
-      setSellers(prev => prev.filter(s => s.name !== sellerName));
-      setFilteredSellers(prev => prev.filter(s => s.name !== sellerName));
-      toast.success('Seller deleted successfully');
+      if (response.data.success) {
+        toast.success(response.data.message);
+        fetchSellers(); // Refresh the sellers list
+      } else {
+        toast.error(response.data.message);
+      }
     } catch (error) {
       console.error('Error deleting seller:', error);
-      toast.error('Error deleting seller');
+      toast.error('Error deleting seller: ' + error.message);
     }
   };
 
@@ -163,65 +103,7 @@ const Sellers = ({ token }) => {
             <h1 className="text-4xl font-bold text-gray-800 mb-2">Seller Management</h1>
             <p className="text-gray-600">Manage your sellers and their information</p>
           </div>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            <FiPlus /> Add Seller
-          </button>
         </div>
-
-        {/* Add Seller Form */}
-        {showAddForm && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Add New Seller</h3>
-            <form onSubmit={handleAddSeller} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Seller Name *
-                </label>
-                <input
-                  type="text"
-                  value={newSeller.name}
-                  onChange={(e) => setNewSeller(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter seller name"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone Number *
-                </label>
-                <input
-                  type="tel"
-                  value={newSeller.phone}
-                  onChange={(e) => setNewSeller(prev => ({ ...prev, phone: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter 10-digit phone number"
-                  pattern="[0-9]{10}"
-                  maxLength="10"
-                  required
-                />
-              </div>
-              <div className="flex items-end gap-2">
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
-                >
-                  Add Seller
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAddForm(false)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
 
         {/* Search */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">

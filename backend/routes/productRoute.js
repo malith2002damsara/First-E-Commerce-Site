@@ -27,7 +27,7 @@ productRouter.post('/add', adminAuth, (req, res, next) => {
 }, addProduct);
 
 productRouter.get('/list', listProducts);
-productRouter.get('/remove', adminAuth, removeProduct);
+productRouter.post('/remove', adminAuth, removeProduct);
 productRouter.get('/single', singleProduct);
 
 export default productRouter;
