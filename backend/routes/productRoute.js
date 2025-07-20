@@ -3,7 +3,8 @@ import {
   addProduct,
   listProducts,
   removeProduct,
-  singleProduct
+  singleProduct,
+  updateProduct
 } from '../controllers/productController.js';
 import upload from '../middleware/multer.js';
 import adminAuth from "../middleware/adminAuth.js";
@@ -29,5 +30,21 @@ productRouter.post('/add', adminAuth, (req, res, next) => {
 productRouter.get('/list', listProducts);
 productRouter.post('/remove', adminAuth, removeProduct);
 productRouter.get('/single', singleProduct);
+
+// Update product route
+productRouter.post('/update', adminAuth, (req, res, next) => {
+  console.log('POST /update route hit');
+  console.log('Headers:', req.headers);
+  next();
+}, upload.fields([
+  { name: 'image1', maxCount: 1 },
+  { name: 'image2', maxCount: 1 },
+  { name: 'image3', maxCount: 1 },
+  { name: 'image4', maxCount: 1 }
+]), (req, res, next) => {
+  console.log('Files received for update:', req.files);
+  console.log('Body received for update:', req.body);
+  next();
+}, updateProduct);
 
 export default productRouter;

@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const orderItemSchema = new mongoose.Schema({
   product: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product',
+    ref: 'product',
     required: true
   },
   name: {
@@ -35,7 +35,7 @@ const orderItemSchema = new mongoose.Schema({
 const orderSchema = new mongoose.Schema({
   user: { 
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'user',
     required: true 
   },
   items: [orderItemSchema],
@@ -69,5 +69,5 @@ const orderSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-const Order = mongoose.models.Order || mongoose.model("Order", orderSchema);
-export default Order;
+const orderModel = mongoose.models.order || mongoose.model("order", orderSchema);
+export default orderModel;

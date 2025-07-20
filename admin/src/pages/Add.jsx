@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { assets } from '../assets/assets';
 import axios from 'axios';
 import { backendUrl } from '../App';
@@ -25,6 +25,62 @@ const Add = ({ token }) => {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sellers, setSellers] = useState([]);
+  const [isLoadingSellers, setIsLoadingSellers] = useState(false);
+  const [isNewSeller, setIsNewSeller] = useState(false);
+
+  // Fetch sellers from database
+  const fetchSellers = async () => {
+    try {
+      setIsLoadingSellers(true);
+      const response = await axios.get(backendUrl + '/api/seller/list');
+      if (response.data.success) {
+        setSellers(response.data.sellers);
+      } else {
+        toast.error('Failed to fetch sellers');
+      }
+    } catch (error) {
+      console.error('Error fetching sellers:', error);
+      toast.error('Error loading sellers');
+    } finally {
+      setIsLoadingSellers(false);
+    }
+  };
+
+  // Handle seller selection
+  const handleSellerChange = (e) => {
+    const selectedSeller = e.target.value;
+    
+    if (selectedSeller === 'new') {
+      setIsNewSeller(true);
+      setFormData(prev => ({
+        ...prev,
+        sellername: '',
+        sellerphone: ''
+      }));
+    } else if (selectedSeller === '') {
+      setIsNewSeller(false);
+      setFormData(prev => ({
+        ...prev,
+        sellername: '',
+        sellerphone: ''
+      }));
+    } else {
+      setIsNewSeller(false);
+      const seller = sellers.find(s => s.name === selectedSeller);
+      if (seller) {
+        setFormData(prev => ({
+          ...prev,
+          sellername: seller.name,
+          sellerphone: seller.phone
+        }));
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchSellers();
+  }, []);
 
   const handleImageChange = (e, fieldName) => {
     if (e.target.files && e.target.files[0]) {
@@ -240,31 +296,75 @@ const Add = ({ token }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Seller Name*</label>
-              <input
-                name="sellername"
-                value={formData.sellername}
-                onChange={handleInputChange}
+              <label className="block text-sm font-medium text-gray-700 mb-1">Seller*</label>
+              <select
+                value={isNewSeller ? 'new' : formData.sellername}
+                onChange={handleSellerChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                type="text"
-                placeholder="Enter seller name"
                 required
-              />
+              >
+                <option value="">Select a seller</option>
+                {isLoadingSellers ? (
+                  <option disabled>Loading sellers...</option>
+                ) : (
+                  sellers.map((seller, index) => (
+                    <option key={index} value={seller.name}>
+                      {seller.name} ({seller.phone})
+                    </option>
+                  ))
+                )}
+                <option value="new">+ Add New Seller</option>
+              </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Seller Phone*</label>
-              <input
-                name="sellerphone"
-                value={formData.sellerphone}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                type="tel"
-                placeholder="Enter 10-digit phone number"
-                pattern="[0-9]{10}"
-                required
-              />
-            </div>
+            {(isNewSeller || !formData.sellername) && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Seller Name* {isNewSeller && <span className="text-blue-600">(New Seller)</span>}
+                </label>
+                <input
+                  name="sellername"
+                  value={formData.sellername}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  type="text"
+                  placeholder="Enter seller name"
+                  required
+                />
+              </div>
+            )}
+
+            {(isNewSeller || !formData.sellername || !sellers.find(s => s.name === formData.sellername)) && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Seller Phone* {isNewSeller && <span className="text-blue-600">(New Seller)</span>}
+                </label>
+                <input
+                  name="sellerphone"
+                  value={formData.sellerphone}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  type="tel"
+                  placeholder="Enter 10-digit phone number"
+                  pattern="[0-9]{10}"
+                  required
+                />
+              </div>
+            )}
+
+            {formData.sellername && sellers.find(s => s.name === formData.sellername) && !isNewSeller && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Seller Phone</label>
+                <input
+                  value={formData.sellerphone}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100"
+                  type="tel"
+                  placeholder="Phone number will be auto-filled"
+                  disabled
+                />
+                <p className="text-sm text-gray-500 mt-1">Phone number auto-filled from selected seller</p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">

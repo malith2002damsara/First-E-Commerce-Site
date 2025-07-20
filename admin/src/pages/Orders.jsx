@@ -307,14 +307,23 @@ const Orders = ({ token }) => {
                 <div className="md:col-span-5 space-y-3">
                   <div className="space-y-1">
                     {order.items.map((item, idx) => (
-                      <p 
+                      <div 
                         key={idx} 
-                        className={`py-1 ${idx !== order.items.length - 1 ? 'border-b border-gray-100' : ''}`}
+                        className={`py-2 ${idx !== order.items.length - 1 ? 'border-b border-gray-100' : ''}`}
                       >
-                        <span className="font-medium">{item.name}</span> 
-                        <span className="text-gray-600 ml-2">x {item.quantity}</span>
-                        {item.size && <span className="text-gray-500 text-xs ml-2">({item.size})</span>}
-                      </p>
+                        <p className="mb-1">
+                          <span className="font-medium">{item.name}</span> 
+                          <span className="text-gray-600 ml-2">x {item.quantity}</span>
+                          {item.size && <span className="text-gray-500 text-xs ml-2">({item.size})</span>}
+                        </p>
+                        {(item.sellername || item.sellerphone) && (
+                          <div className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
+                            <span className="font-medium">Seller:</span>
+                            {item.sellername && <span className="ml-1">{item.sellername}</span>}
+                            {item.sellerphone && <span className="ml-2">• {item.sellerphone}</span>}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
 

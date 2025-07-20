@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { backendUrl, currency } from '../App';
 import { toast } from 'react-toastify';
-import { FiFilter, FiX, FiSearch, FiTrash2 } from 'react-icons/fi';
+import { FiFilter, FiX, FiSearch, FiTrash2, FiEdit } from 'react-icons/fi';
+import EditProduct from '../components/EditProduct';
 
 const List = ({ token }) => {
   const [list, setList] = useState([]);
@@ -15,6 +16,8 @@ const List = ({ token }) => {
   });
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const fetchList = async () => {
     try {
@@ -59,9 +62,35 @@ const List = ({ token }) => {
         toast.error(response.data.message);
       }
     } catch (error) {
-      console.error(error);
-      toast.error(error.message);
+      console.error('Error removing product:', error);
+      if (error.response) {
+        if (error.response.status === 401) {
+          toast.error('Unauthorized: Please login again');
+        } else if (error.response.status === 404) {
+          toast.error('Product not found');
+        } else {
+          toast.error(error.response.data?.message || 'Server error occurred');
+        }
+      } else if (error.request) {
+        toast.error('Network error: Please check your connection');
+      } else {
+        toast.error('Error: ' + error.message);
+      }
     }
+  };
+
+  const handleEditProduct = (product) => {
+    setEditingProduct(product);
+    setShowEditModal(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingProduct(null);
+  };
+
+  const handleUpdateProduct = () => {
+    fetchList(); // Refresh the list after update
   };
 
   const applyFilters = React.useCallback(() => {
@@ -255,7 +284,7 @@ const List = ({ token }) => {
             <div className="flex-1 min-w-[150px] px-2">Seller Name</div>
             <div className="flex-1 min-w-[120px] px-2">Seller Phone</div>
             <div className="w-24 px-2 text-right">Price</div>
-            <div className="w-16 px-2 text-center">Action</div>
+            <div className="w-20 px-2 text-center">Actions</div>
           </div>
 
           {/* Table Body */}
@@ -298,7 +327,15 @@ const List = ({ token }) => {
                         <p className="text-gray-500">Phone</p>
                         <p>{item.sellerphone}</p>
                       </div>
-                      <div className="flex items-end">
+                      <div className="flex items-end gap-2">
+                        <button
+                          onClick={() => handleEditProduct(item)}
+                          className="text-blue-500 hover:text-blue-700 transition-colors p-1 rounded hover:bg-blue-50 flex items-center"
+                          title="Edit product"
+                        >
+                          <FiEdit size={16} className="mr-1" />
+                          <span>Edit</span>
+                        </button>
                         <button
                           onClick={() => removeProduct(item._id)}
                           className="text-red-500 hover:text-red-700 transition-colors p-1 rounded hover:bg-red-50 flex items-center"
@@ -338,13 +375,20 @@ const List = ({ token }) => {
                     <div className="w-24 px-2 text-right text-gray-800 font-medium">
                       {currency}{" "}{item.price.toLocaleString()}
                     </div>
-                    <div className="w-16 px-2 flex justify-center">
+                    <div className="w-20 px-2 flex justify-center gap-1">
+                      <button
+                        onClick={() => handleEditProduct(item)}
+                        className="text-blue-500 hover:text-blue-700 transition-colors p-1 rounded hover:bg-blue-50"
+                        title="Edit product"
+                      >
+                        <FiEdit size={16} />
+                      </button>
                       <button
                         onClick={() => removeProduct(item._id)}
-                        className="text-red-500 hover:text-red-700 transition-colors p-2 rounded hover:bg-red-50"
+                        className="text-red-500 hover:text-red-700 transition-colors p-1 rounded hover:bg-red-50"
                         title="Delete product"
                       >
-                        <FiTrash2 size={18} />
+                        <FiTrash2 size={16} />
                       </button>
                     </div>
                   </div>
@@ -365,6 +409,16 @@ const List = ({ token }) => {
             )}
           </div>
         </div>
+      )}
+
+      {/* Edit Product Modal */}
+      {showEditModal && editingProduct && (
+        <EditProduct
+          product={editingProduct}
+          onClose={handleCloseEditModal}
+          onUpdate={handleUpdateProduct}
+          token={token}
+        />
       )}
     </div>
   );

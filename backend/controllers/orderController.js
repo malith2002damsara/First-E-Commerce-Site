@@ -185,30 +185,66 @@ const verifyStripe = async (req, res) => {
 //all orders data for admin pannel
 const allOrders = async (req, res) => {
   try {
-    const orders = await orderModel.find({})
-    res.json({ success: true, orders })
+    const orders = await orderModel.find({}).populate({
+      path: 'items.product',
+      select: 'sellername sellerphone'
+    });
+
+    // Add seller information to each order item
+    const ordersWithSellerInfo = orders.map(order => {
+      const orderObj = order.toObject();
+      orderObj.items = orderObj.items.map(item => {
+        if (item.product) {
+          return {
+            ...item,
+            sellername: item.product.sellername,
+            sellerphone: item.product.sellerphone
+          };
+        }
+        return item;
+      });
+      return orderObj;
+    });
+
+    res.json({ success: true, orders: ordersWithSellerInfo })
 
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, message: error.message })
-
   }
-
 }
 
 //User order data for frontend
 const userOrders = async (req, res) => {
   try {
-
     const { userId } = req.body
-    const orders = await orderModel.find({ user: userId })
-    res.json({ success: true, orders })
+    const orders = await orderModel.find({ user: userId }).populate({
+      path: 'items.product',
+      select: 'sellername sellerphone'
+    });
+
+    // Add seller information to each order item
+    const ordersWithSellerInfo = orders.map(order => {
+      const orderObj = order.toObject();
+      orderObj.items = orderObj.items.map(item => {
+        if (item.product) {
+          return {
+            ...item,
+            sellername: item.product.sellername,
+            sellerphone: item.product.sellerphone
+          };
+        }
+        return item;
+      });
+      return orderObj;
+    });
+
+    res.json({ success: true, orders: ordersWithSellerInfo })
 
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, message: error.message })
   }
-
 }
 
 //update order status from admin pannel
