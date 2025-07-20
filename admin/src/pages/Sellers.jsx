@@ -2,155 +2,148 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
-
-// Helper function moved outside component to avoid dependency issues
-const calculateSellersData = (products, orders) => {
-  const sellersMap = {};
-
-  // Initialize sellers from products
-  products.forEach(product => {
-    if (!sellersMap[product.sellername]) {
-      sellersMap[product.sellername] = {
-        name: product.sellername,
-        phone: product.sellerphone,
-        products: [],
-        totalProducts: 0,
-        totalRevenue: 0,
-        totalOrders: 0,
-        categories: new Set(),
-        averagePrice: 0,
-        joinDate: product.date || Date.now()
-      };
-    }
-    
-    sellersMap[product.sellername].products.push(product);
-    sellersMap[product.sellername].totalProducts++;
-    sellersMap[product.sellername].categories.add(product.category);
-  });
-
-  // Calculate revenue and orders from order data
-  orders.forEach(order => {
-    if (order.items && Array.isArray(order.items)) {
-      order.items.forEach(item => {
-        const product = products.find(p => 
-          p._id === (item.product || item._id) || p.name === item.name
-        );
-        
-        if (product && sellersMap[product.sellername]) {
-          const itemRevenue = (item.price || 0) * (item.quantity || 0);
-          sellersMap[product.sellername].totalRevenue += itemRevenue;
-          sellersMap[product.sellername].totalOrders++;
-        }
-      });
-    }
-  });
-
-  // Calculate average price and format data
-  return Object.values(sellersMap).map(seller => {
-    const totalPrice = seller.products.reduce((sum, product) => sum + product.price, 0);
-    seller.averagePrice = seller.totalProducts > 0 ? totalPrice / seller.totalProducts : 0;
-    seller.categories = Array.from(seller.categories);
-    seller.joinDate = new Date(seller.joinDate);
-    
-    return seller;
-  });
-};
+import EditSeller from '../components/EditSeller';
+import { FiEdit2, FiTrash2, FiPlus, FiSearch, FiUsers } from 'react-icons/fi';
 
 const Sellers = ({ token }) => {
   const [sellers, setSellers] = useState([]);
   const [filteredSellers, setFilteredSellers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('revenue'); // revenue, products, orders, name
+  const [selectedSeller, setSelectedSeller] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [newSeller, setNewSeller] = useState({
+    name: '',
+    phone: ''
+  });
+  const [showAddForm, setShowAddForm] = useState(false);
 
-  useEffect(() => {
-    const fetchSellersData = async () => {
-      try {
-        setLoading(true);
+  const fetchSellers = async () => {
+    try {
+      setIsLoading(true);
+      // Get sellers from products
+      const response = await axios.get(`${backendUrl}/api/product/list`);
+      
+      if (response.data.success) {
+        const products = response.data.products;
+        // Extract unique sellers from products
+        const sellersMap = {};
         
-        // Fetch products
-        const productsRes = await axios.get(`${backendUrl}/api/product/list`);
-        
-        // Fetch orders
-        const ordersRes = await axios.post(
-          `${backendUrl}/api/order/list`,
-          {},
-          { headers: { token } }
-        );
+        products.forEach(product => {
+          if (product.sellername && !sellersMap[product.sellername]) {
+            sellersMap[product.sellername] = {
+              name: product.sellername,
+              phone: product.sellerphone || '',
+              productCount: 0,
+              totalRevenue: 0
+            };
+          }
+          if (product.sellername) {
+            sellersMap[product.sellername].productCount++;
+            sellersMap[product.sellername].totalRevenue += Number(product.price) || 0;
+          }
+        });
 
-        if (productsRes.data.success && ordersRes.data.success) {
-          const products = productsRes.data.products || [];
-          const orders = ordersRes.data.orders || [];
-          
-          const sellersData = calculateSellersData(products, orders);
-          setSellers(sellersData);
-          setFilteredSellers(sellersData);
-        } else {
-          toast.error('Failed to load sellers data');
-        }
-      } catch (error) {
-        console.error('Error fetching sellers data:', error);
-        toast.error('Failed to load sellers data: ' + error.message);
-      } finally {
-        setLoading(false);
+        const sellersArray = Object.values(sellersMap);
+        setSellers(sellersArray);
+        setFilteredSellers(sellersArray);
+      } else {
+        toast.error('Failed to fetch sellers');
       }
-    };
-
-    fetchSellersData();
-  }, [token]);
-
-  useEffect(() => {
-    const filterAndSortSellers = () => {
-      let filtered = [...sellers];
-
-      // Apply search filter
-      if (searchTerm) {
-        filtered = filtered.filter(seller =>
-          seller.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          seller.phone.includes(searchTerm)
-        );
-      }
-
-      // Apply sorting
-      filtered.sort((a, b) => {
-        switch (sortBy) {
-          case 'revenue':
-            return b.totalRevenue - a.totalRevenue;
-          case 'products':
-            return b.totalProducts - a.totalProducts;
-          case 'orders':
-            return b.totalOrders - a.totalOrders;
-          case 'name':
-            return a.name.localeCompare(b.name);
-          case 'joinDate':
-            return b.joinDate - a.joinDate;
-          default:
-            return b.totalRevenue - a.totalRevenue;
-        }
-      });
-
-      setFilteredSellers(filtered);
-    };
-
-    filterAndSortSellers();
-  }, [searchTerm, sortBy, sellers]);
-
-  const getPerformanceRating = (seller) => {
-    const avgRevenue = sellers.reduce((sum, s) => sum + s.totalRevenue, 0) / sellers.length;
-    const avgProducts = sellers.reduce((sum, s) => sum + s.totalProducts, 0) / sellers.length;
-    
-    if (seller.totalRevenue > avgRevenue * 1.5 && seller.totalProducts > avgProducts) {
-      return { rating: 'Excellent', color: 'bg-green-100 text-green-800' };
-    } else if (seller.totalRevenue > avgRevenue && seller.totalProducts >= avgProducts * 0.8) {
-      return { rating: 'Good', color: 'bg-blue-100 text-blue-800' };
-    } else if (seller.totalRevenue > avgRevenue * 0.5) {
-      return { rating: 'Average', color: 'bg-yellow-100 text-yellow-800' };
-    } else {
-      return { rating: 'Below Average', color: 'bg-red-100 text-red-800' };
+    } catch (error) {
+      console.error('Error fetching sellers:', error);
+      toast.error('Error fetching sellers: ' + error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (loading) {
+  const handleSearch = (term) => {
+    setSearchTerm(term);
+    if (!term.trim()) {
+      setFilteredSellers(sellers);
+    } else {
+      const filtered = sellers.filter(seller =>
+        seller.name.toLowerCase().includes(term.toLowerCase()) ||
+        seller.phone.includes(term)
+      );
+      setFilteredSellers(filtered);
+    }
+  };
+
+  const handleEditSeller = (seller) => {
+    setSelectedSeller(seller);
+    setIsEditModalOpen(true);
+  };
+
+  const handleAddSeller = async (e) => {
+    e.preventDefault();
+    
+    if (!newSeller.name.trim()) {
+      toast.error('Seller name is required');
+      return;
+    }
+    if (!/^\d{10}$/.test(newSeller.phone)) {
+      toast.error('Please enter a valid 10-digit phone number');
+      return;
+    }
+
+    // Check if seller already exists
+    const existingSeller = sellers.find(s => s.name.toLowerCase() === newSeller.name.toLowerCase());
+    if (existingSeller) {
+      toast.error('Seller with this name already exists');
+      return;
+    }
+
+    try {
+      // For now, we'll add it to local state since we don't have a dedicated sellers API
+      const newSellerData = {
+        name: newSeller.name.trim(),
+        phone: newSeller.phone.trim(),
+        productCount: 0,
+        totalRevenue: 0
+      };
+
+      setSellers(prev => [...prev, newSellerData]);
+      setFilteredSellers(prev => [...prev, newSellerData]);
+      
+      setNewSeller({ name: '', phone: '' });
+      setShowAddForm(false);
+      toast.success('Seller added successfully');
+    } catch (error) {
+      console.error('Error adding seller:', error);
+      toast.error('Error adding seller');
+    }
+  };
+
+  const handleDeleteSeller = async (sellerName) => {
+    if (!window.confirm(`Are you sure you want to delete seller "${sellerName}"? This will also affect all products by this seller.`)) {
+      return;
+    }
+
+    try {
+      // Check if seller has products
+      const sellerProducts = sellers.find(s => s.name === sellerName);
+      if (sellerProducts && sellerProducts.productCount > 0) {
+        toast.warning('Cannot delete seller with existing products. Please remove all products first.');
+        return;
+      }
+
+      // Remove from local state
+      setSellers(prev => prev.filter(s => s.name !== sellerName));
+      setFilteredSellers(prev => prev.filter(s => s.name !== sellerName));
+      toast.success('Seller deleted successfully');
+    } catch (error) {
+      console.error('Error deleting seller:', error);
+      toast.error('Error deleting seller');
+    }
+  };
+
+  useEffect(() => {
+    fetchSellers();
+  }, []);
+
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex items-center space-x-2">
@@ -163,15 +156,91 @@ const Sellers = ({ token }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Seller Management</h1>
-          <p className="text-gray-600">Manage and monitor seller performance</p>
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-800 mb-2">Seller Management</h1>
+            <p className="text-gray-600">Manage your sellers and their information</p>
+          </div>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            <FiPlus /> Add Seller
+          </button>
+        </div>
+
+        {/* Add Seller Form */}
+        {showAddForm && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Add New Seller</h3>
+            <form onSubmit={handleAddSeller} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Seller Name *
+                </label>
+                <input
+                  type="text"
+                  value={newSeller.name}
+                  onChange={(e) => setNewSeller(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter seller name"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  value={newSeller.phone}
+                  onChange={(e) => setNewSeller(prev => ({ ...prev, phone: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter 10-digit phone number"
+                  pattern="[0-9]{10}"
+                  maxLength="10"
+                  required
+                />
+              </div>
+              <div className="flex items-end gap-2">
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
+                >
+                  Add Seller
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Search */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="relative max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiSearch className="text-gray-400" />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Search sellers by name or phone..."
+              className="pl-10 w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -179,9 +248,7 @@ const Sellers = ({ token }) => {
                 <p className="text-3xl font-bold text-gray-800">{sellers.length}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                </svg>
+                <FiUsers className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </div>
@@ -189,14 +256,14 @@ const Sellers = ({ token }) => {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                <p className="text-sm font-medium text-gray-600">Active Sellers</p>
                 <p className="text-3xl font-bold text-gray-800">
-                  LKR {sellers.reduce((sum, s) => sum + s.totalRevenue, 0).toLocaleString()}
+                  {sellers.filter(s => s.productCount > 0).length}
                 </p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
               </div>
             </div>
@@ -205,9 +272,9 @@ const Sellers = ({ token }) => {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Average Products</p>
+                <p className="text-sm font-medium text-gray-600">Total Products</p>
                 <p className="text-3xl font-bold text-gray-800">
-                  {sellers.length > 0 ? Math.round(sellers.reduce((sum, s) => sum + s.totalProducts, 0) / sellers.length) : 0}
+                  {sellers.reduce((sum, seller) => sum + seller.productCount, 0)}
                 </p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -217,130 +284,104 @@ const Sellers = ({ token }) => {
               </div>
             </div>
           </div>
-
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Top Performer</p>
-                <p className="text-lg font-bold text-gray-800">
-                  {sellers.length > 0 ? sellers.sort((a, b) => b.totalRevenue - a.totalRevenue)[0]?.name.split(' ')[0] : 'N/A'}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
-                </svg>
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* Filters and Search */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Search Sellers</label>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by name or phone..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="revenue">Total Revenue</option>
-                <option value="products">Total Products</option>
-                <option value="orders">Total Orders</option>
-                <option value="name">Name (A-Z)</option>
-                <option value="joinDate">Join Date</option>
-              </select>
-            </div>
-            <div className="flex items-end">
-              <div className="text-sm text-gray-600">
-                Showing {filteredSellers.length} of {sellers.length} sellers
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Sellers List */}
+        {/* Sellers Table */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="grid grid-cols-1 gap-4 p-6">
-            {filteredSellers.length > 0 ? (
-              filteredSellers.map((seller, index) => {
-                const performance = getPerformanceRating(seller);
-                return (
-                  <div 
-                    key={index} 
-                    className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
-                  >
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-                      {/* Seller Info */}
-                      <div className="lg:col-span-4">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-blue-600 font-semibold text-lg">
-                              {seller.name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-800">{seller.name}</h3>
-                            <p className="text-gray-600">{seller.phone}</p>
-                            <p className="text-sm text-gray-500">
-                              Joined: {seller.joinDate.toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Stats */}
-                      <div className="lg:col-span-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="text-center">
-                          <p className="text-2xl font-bold text-gray-800">{seller.totalProducts}</p>
-                          <p className="text-sm text-gray-600">Products</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-2xl font-bold text-gray-800">{seller.totalOrders}</p>
-                          <p className="text-sm text-gray-600">Orders</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-2xl font-bold text-gray-800">LKR {seller.totalRevenue.toLocaleString()}</p>
-                          <p className="text-sm text-gray-600">Revenue</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-2xl font-bold text-gray-800">LKR {seller.averagePrice.toLocaleString()}</p>
-                          <p className="text-sm text-gray-600">Avg Price</p>
-                        </div>
-                      </div>
-
-                      {/* Performance & Categories */}
-                      <div className="lg:col-span-2 text-right">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${performance.color} mb-2`}>
-                          {performance.rating}
-                        </span>
-                        <div className="text-sm text-gray-600">
-                          <p>Categories:</p>
-                          <p className="font-medium">{seller.categories.join(', ')}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                {sellers.length === 0 ? 'No sellers found' : 'No sellers match your search criteria'}
-              </div>
-            )}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800">
+              Sellers ({filteredSellers.length})
+            </h3>
           </div>
+
+          {filteredSellers.length === 0 ? (
+            <div className="py-8 text-center text-gray-500">
+              {sellers.length === 0 ? 'No sellers found' : 'No sellers match your search'}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Seller Information
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Products
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Revenue
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredSellers.map((seller, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {seller.name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            📞 {seller.phone}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {seller.productCount} products
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          LKR {seller.totalRevenue.toLocaleString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleEditSeller(seller)}
+                            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+                            title="Edit seller"
+                          >
+                            <FiEdit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteSeller(seller.name)}
+                            className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
+                            title="Delete seller"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
+
+        {/* Edit Seller Modal */}
+        {isEditModalOpen && selectedSeller && (
+          <EditSeller
+            seller={selectedSeller}
+            onClose={() => {
+              setIsEditModalOpen(false);
+              setSelectedSeller(null);
+            }}
+            onUpdate={() => {
+              fetchSellers();
+              setIsEditModalOpen(false);
+              setSelectedSeller(null);
+            }}
+            token={token}
+          />
+        )}
       </div>
     </div>
   );

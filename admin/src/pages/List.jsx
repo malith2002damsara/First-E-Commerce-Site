@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { backendUrl, currency } from '../App';
 import { toast } from 'react-toastify';
-import { FiFilter, FiX, FiSearch, FiTrash2, FiEdit } from 'react-icons/fi';
-import EditProduct from '../components/EditProduct';
+import { FiFilter, FiX, FiSearch, FiTrash2 } from 'react-icons/fi';
 
 const List = ({ token }) => {
   const [list, setList] = useState([]);
@@ -16,8 +15,6 @@ const List = ({ token }) => {
   });
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [showEditModal, setShowEditModal] = useState(false);
 
   const fetchList = async () => {
     try {
@@ -67,7 +64,7 @@ const List = ({ token }) => {
     }
   };
 
-  const applyFilters = useCallback(() => {
+  const applyFilters = React.useCallback(() => {
     let result = [...list];
 
     if (filters.name) {
@@ -98,20 +95,6 @@ const List = ({ token }) => {
       subcategory: ''
     });
     setFilteredList(list);
-  };
-
-  const handleEditProduct = (product) => {
-    setEditingProduct(product);
-    setShowEditModal(true);
-  };
-
-  const handleCloseEditModal = () => {
-    setShowEditModal(false);
-    setEditingProduct(null);
-  };
-
-  const handleUpdateProduct = () => {
-    fetchList(); // Refresh the list after update
   };
 
   // Update subcategories when category changes
@@ -272,7 +255,7 @@ const List = ({ token }) => {
             <div className="flex-1 min-w-[150px] px-2">Seller Name</div>
             <div className="flex-1 min-w-[120px] px-2">Seller Phone</div>
             <div className="w-24 px-2 text-right">Price</div>
-            <div className="w-24 px-2 text-center">Actions</div>
+            <div className="w-16 px-2 text-center">Action</div>
           </div>
 
           {/* Table Body */}
@@ -309,21 +292,13 @@ const List = ({ token }) => {
                       </div>
                       <div>
                         <p className="text-gray-500">Seller</p>
-                        <p>{item.sellerName}</p>
+                        <p>{item.sellername}</p>
                       </div>
                       <div>
                         <p className="text-gray-500">Phone</p>
-                        <p>{item.sellerPhone}</p>
+                        <p>{item.sellerphone}</p>
                       </div>
-                      <div className="flex items-end space-x-2">
-                        <button
-                          onClick={() => handleEditProduct(item)}
-                          className="text-blue-500 hover:text-blue-700 transition-colors p-1 rounded hover:bg-blue-50 flex items-center"
-                          title="Edit product"
-                        >
-                          <FiEdit size={16} className="mr-1" />
-                          <span>Edit</span>
-                        </button>
+                      <div className="flex items-end">
                         <button
                           onClick={() => removeProduct(item._id)}
                           className="text-red-500 hover:text-red-700 transition-colors p-1 rounded hover:bg-red-50 flex items-center"
@@ -355,22 +330,15 @@ const List = ({ token }) => {
                       {item.subcategory}
                     </div>
                     <div className="flex-1 min-w-[150px] px-2 text-gray-600">
-                      {item.sellerName}
+                      {item.sellername}
                     </div>
                     <div className="flex-1 min-w-[120px] px-2 text-gray-600">
-                      {item.sellerPhone}
+                      {item.sellerphone}
                     </div>
                     <div className="w-24 px-2 text-right text-gray-800 font-medium">
                       {currency}{" "}{item.price.toLocaleString()}
                     </div>
-                    <div className="w-24 px-2 flex justify-center space-x-1">
-                      <button
-                        onClick={() => handleEditProduct(item)}
-                        className="text-blue-500 hover:text-blue-700 transition-colors p-2 rounded hover:bg-blue-50"
-                        title="Edit product"
-                      >
-                        <FiEdit size={18} />
-                      </button>
+                    <div className="w-16 px-2 flex justify-center">
                       <button
                         onClick={() => removeProduct(item._id)}
                         className="text-red-500 hover:text-red-700 transition-colors p-2 rounded hover:bg-red-50"
@@ -397,16 +365,6 @@ const List = ({ token }) => {
             )}
           </div>
         </div>
-      )}
-
-      {/* Edit Product Modal */}
-      {showEditModal && (
-        <EditProduct
-          product={editingProduct}
-          onClose={handleCloseEditModal}
-          onUpdate={handleUpdateProduct}
-          token={token}
-        />
       )}
     </div>
   );
