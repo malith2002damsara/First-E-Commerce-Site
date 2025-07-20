@@ -7,12 +7,16 @@ import NewsletterBox from '../components/NewsletterBox'
 
 const Home = () => {
   return (
-    <div className='px-5'>
-      <Hero/>
-      <LatestCollection/>
-      <BestSeller/>
-      <OurPolicy/>
-      <NewsletterBox/>
+    <div className='min-h-screen bg-gray-50'>
+      <div className='px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto'>
+        <Hero/>
+        <div className='space-y-16 py-12'>
+          <LatestCollection/>
+          <BestSeller/>
+          <OurPolicy/>
+          <NewsletterBox/>
+        </div>
+      </div>
     </div>
   )
 }

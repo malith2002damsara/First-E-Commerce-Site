@@ -130,7 +130,10 @@ const Orders = ({ token }) => {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Order Management</h1>
+        <div>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Order Management</h1>
+          <p className="text-gray-600">Manage and track all customer orders</p>
+        </div>
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"

@@ -233,12 +233,16 @@ const Add = ({ token }) => {
   };
 
   return (
-    <form onSubmit={onSubmitHandler} className="flex flex-col w-full items-start gap-4 p-4 max-w-4xl mx-auto">
+    <div className="w-full p-4">
       <div className="w-full">
-        <h2 className="text-2xl font-bold text-gray-800 mb-6">Add New Product</h2>
-        
         <div className="mb-6">
-          <p className="mb-3 text-lg font-semibold text-gray-700">Product Images (Upload at least one)</p>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Add New Product</h1>
+          <p className="text-gray-600">Create and add new products to your inventory</p>
+        </div>
+        
+        <form onSubmit={onSubmitHandler} className="w-full">
+          <div className="mb-6">
+            <p className="mb-3 text-lg font-semibold text-gray-700">Product Images (Upload at least one)</p>
           <div className="flex flex-wrap gap-4">
             {[1, 2, 3, 4].map((num) => (
               <label 
@@ -469,8 +473,9 @@ const Add = ({ token }) => {
             'Add Product'
           )}
         </button>
+        </form>
       </div>
-    </form>
+    </div>
   );
 };
 

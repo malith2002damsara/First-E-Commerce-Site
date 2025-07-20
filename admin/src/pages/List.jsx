@@ -155,7 +155,10 @@ const List = ({ token }) => {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">All Products List</h1>
+        <div>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">All Products List</h1>
+          <p className="text-gray-600">View and manage all products in your inventory</p>
+        </div>
         <div className="flex items-center gap-4">
           {(filters.name || filters.category || filters.subcategory) && (
             <button
