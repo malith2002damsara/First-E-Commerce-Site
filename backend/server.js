@@ -33,9 +33,8 @@ const corsOptions = {
       'http://localhost:3000',
       'http://localhost:5173',
       'http://localhost:5174',
-      'https://frontend-seven-eosin-56.vercel.app', 
-      'https://admin-kohl-one.vercel.app',
-      'https://backend-xi-nine-18.vercel.app'
+      'https://ceylonadmin.vercel.app',
+      'https://ceylonbackend.vercel.app'
     ];
     
     // Allow any vercel.app domain for your projects
