@@ -25,13 +25,28 @@ app.use(express.json())
 
 // CORS configuration
 const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'https://ceylonadmin.vercel.app',
-    'https://ceylonfrontend.vercel.app'
-  ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'https://frontend-seven-eosin-56.vercel.app', 
+      'https://admin-kohl-one.vercel.app',
+      'https://backend-xi-nine-18.vercel.app'
+    ];
+    
+    // Allow any vercel.app domain for your projects
+    if (origin.includes('malith2002damsaras-projects.vercel.app') || 
+        origin.includes('vercel.app') || 
+        allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -75,6 +90,16 @@ app.use('/api/seller', sellerRouter)
 
 app.get('/', (req, res) => {
   res.send('Api working!')
+})
+
+// Test endpoint to verify CORS
+app.get('/api/test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'CORS is working correctly!',
+    origin: req.headers.origin || 'No origin header',
+    timestamp: new Date().toISOString()
+  })
 })
 
 //Listener
