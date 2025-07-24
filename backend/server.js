@@ -22,7 +22,23 @@ connectCloudinary()
 
 //Middlewares
 app.use(express.json())
-app.use(cors())
+
+// CORS configuration
+const corsOptions = {
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://ceylonadmin.vercel.app',
+    'https://ceylonfrontend.vercel.app'
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'token']
+}
+
+app.use(cors(corsOptions))
 
 // Error handling middleware
 app.use((err, req, res, next) => {
