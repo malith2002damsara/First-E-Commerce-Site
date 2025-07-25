@@ -14,15 +14,60 @@ import sellerRouter from './routes/sellerRoute.js'
 const app = express()
 const port = process.env.PORT || 5000
 
-// Connect to database
-connectDB()
+// Initialize connections with error handling
+const initializeApp = async () => {
+  try {
+    await connectDB();
+    await connectCloudinary();
+    console.log('All services connected successfully');
+  } catch (error) {
+    console.error('Failed to initialize services:', error.message);
+    // Don't throw error in serverless environment
+  }
+};
 
-// Connect to cloudinary
-connectCloudinary()
+// Initialize the app
+initializeApp();
 
 //Middlewares
-app.use(express.json())
-app.use(cors())
+app.use(express.json({ limit: '10mb' }))
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true
+}))
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    success: true, 
+    message: 'Server is healthy',
+    timestamp: new Date().toISOString()
+  });
+});
+
+//API Endpoints
+app.use('/api/user', userRouter)
+app.use('/api/product',productRouter)
+app.use('/api/cart', cartRouter)
+app.use('/api/order', orderRouter)
+app.use('/api/seller', sellerRouter)
+// app.use('/api/reviews', reviewRouter)
+
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'API is working!',
+    timestamp: new Date().toISOString()
+  });
+})
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
+  });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -44,22 +89,10 @@ app.use((err, req, res, next) => {
   
   res.status(500).json({
     success: false,
-    message: 'Server error occurred',
-    error: err.message
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
   });
 });
-
-//API Endpoints
-app.use('/api/user', userRouter)
-app.use('/api/product',productRouter)
-app.use('/api/cart', cartRouter)
-app.use('/api/order', orderRouter)
-app.use('/api/seller', sellerRouter)
-// app.use('/api/reviews', reviewRouter)
-
-app.get('/', (req, res) => {
-  res.send('Api working!')
-})
 
 //Listener
 // For local development only:
