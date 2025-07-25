@@ -104,13 +104,83 @@ const ShopContextProvider = (props) => {
     if (token) {
       try {
         await axios.post(
-          `${backendUrl}/api/cart/add`,
+          `${backendUrl}/api/cart/update`,
           { itemId, size, quantity: newQuantity },
           { headers: { token } }
         );
       } catch (error) {
         console.error('Error updating quantity:', error);
         toast.error(error.response?.data?.message || 'Error updating quantity');
+      }
+    }
+  };
+
+  // Remove specific item and size from cart
+  const removeFromCart = async (itemId, size) => {
+    const cartData = structuredClone(cartItems);
+    
+    if (cartData[itemId] && cartData[itemId][size]) {
+      delete cartData[itemId][size];
+      if (Object.keys(cartData[itemId]).length === 0) {
+        delete cartData[itemId];
+      }
+      setCartItems(cartData);
+
+      if (token) {
+        try {
+          await axios.post(
+            `${backendUrl}/api/cart/remove`,
+            { itemId, size },
+            { headers: { token } }
+          );
+          toast.success('Item removed from cart');
+        } catch (error) {
+          console.error('Error removing from cart:', error);
+          toast.error(error.response?.data?.message || 'Error removing from cart');
+        }
+      }
+    }
+  };
+
+  // Remove entire item (all sizes) from cart
+  const removeEntireItem = async (itemId) => {
+    const cartData = structuredClone(cartItems);
+    
+    if (cartData[itemId]) {
+      delete cartData[itemId];
+      setCartItems(cartData);
+
+      if (token) {
+        try {
+          await axios.post(
+            `${backendUrl}/api/cart/remove`,
+            { itemId },
+            { headers: { token } }
+          );
+          toast.success('Item removed from cart');
+        } catch (error) {
+          console.error('Error removing item from cart:', error);
+          toast.error(error.response?.data?.message || 'Error removing item');
+        }
+      }
+    }
+  };
+
+  // Clear entire cart
+  const clearCart = async () => {
+    setCartItems({});
+
+    if (token) {
+      try {
+        await axios.post(
+          `${backendUrl}/api/cart/clear`,
+          {},
+          { headers: { token } }
+        );
+        toast.success('Cart cleared successfully');
+      } catch (error) {
+        console.error('Error clearing cart:', error);
+        toast.error(error.response?.data?.message || 'Error clearing cart');
       }
     }
   };
@@ -190,6 +260,9 @@ const ShopContextProvider = (props) => {
     setCartItems,
     getCartCount,
     updateQuantity,
+    removeFromCart,
+    removeEntireItem,
+    clearCart,
     getCartAmount,
     navigate,
     backendUrl,
