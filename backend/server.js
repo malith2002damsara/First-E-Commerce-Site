@@ -27,8 +27,10 @@ const initializeConnections = async () => {
       console.log('Database and Cloudinary connected successfully')
     } catch (error) {
       console.error('Connection error:', error)
-      // Implement retry logic or exit if critical
-      throw error
+      // Don't throw error in serverless environment to prevent crashes
+      if (process.env.NODE_ENV === 'development') {
+        throw error
+      }
     } finally {
       isInitializing = false
     }
@@ -61,31 +63,6 @@ app.use(async (req, res, next) => {
   }
 })
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Server Error:', err)
-  
-  if (err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(413).json({
-      success: false,
-      message: 'File size too large'
-    })
-  }
-  
-  if (err.message && err.message.includes('Only images')) {
-    return res.status(400).json({
-      success: false,
-      message: err.message
-    })
-  }
-  
-  res.status(500).json({
-    success: false,
-    message: 'Server error occurred',
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
-  })
-})
-
 // API Endpoints
 app.use('/api/user', userRouter)
 app.use('/api/product', productRouter)
@@ -112,10 +89,37 @@ app.get('/health', (req, res) => {
   })
 })
 
-// For Vercel deployment
-module.exports = app
+// Error handling middleware (should be after routes)
+app.use((err, req, res, next) => {
+  console.error('Server Error:', err)
+  
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      success: false,
+      message: 'File size too large'
+    })
+  }
+  
+  if (err.message && err.message.includes('Only images')) {
+    return res.status(400).json({
+      success: false,
+      message: err.message
+    })
+  }
+  
+  if (!res.headersSent) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error occurred',
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    })
+  }
+})
 
 // For local development
 if (process.env.NODE_ENV !== 'production') {
   app.listen(port, () => console.log('Server started on PORT: ' + port))
 }
+
+// Export for Vercel (ES module syntax)
+export default app
