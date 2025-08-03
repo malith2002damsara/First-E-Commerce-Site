@@ -1,15 +1,25 @@
 import mongoose from "mongoose";
 
-const connectDB = async()=>{
+const connectDB = async () => {
   try {
-    // Make sure the URI is correctly formatted, ending with the database name
-    // For example: mongodb+srv://username:password@cluster.mongodb.net/cloths
-    // NOT: mongodb+srv://username:password@cluster.mongodb.net/cloths/cloths
-    const conn = await mongoose.connect(process.env.MONGODB_URI);
+    // Check if already connected
+    if (mongoose.connections[0].readyState) {
+      console.log('MongoDB already connected');
+      return;
+    }
+
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+    });
+    
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error(`Error: ${error.message}`);
-    process.exit(1);
+    console.error(`MongoDB connection error: ${error.message}`);
+    // Don't exit process in serverless environment
+    throw error;
   }
 };
 

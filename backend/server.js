@@ -8,21 +8,44 @@ import productRouter from './routes/productRoute.js'
 import cartRouter from './routes/cartRoute.js'
 import orderRouter from './routes/orderRoute.js'
 import sellerRouter from './routes/sellerRoute.js'
-// import reviewRouter from './routes/reviewRoute.js';
 
 //App config
 const app = express()
 const port = process.env.PORT || 5000
 
-// Connect to database
-connectDB()
+// Initialize connections
+let isConnected = false;
 
-// Connect to cloudinary
-connectCloudinary()
+const initializeConnections = async () => {
+  if (!isConnected) {
+    try {
+      await connectDB()
+      await connectCloudinary()
+      isConnected = true;
+      console.log('Database and Cloudinary connected successfully');
+    } catch (error) {
+      console.error('Connection error:', error);
+    }
+  }
+}
 
 //Middlewares
-app.use(express.json())
-app.use(cors())
+app.use(express.json({ limit: '10mb' }))
+app.use(cors({
+  origin: [
+    'https://ceylonadmin.vercel.app',
+    'https://ceylonfrontend.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:5174'
+  ],
+  credentials: true
+}))
+
+// Initialize connections before handling requests
+app.use(async (req, res, next) => {
+  await initializeConnections();
+  next();
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -45,27 +68,38 @@ app.use((err, req, res, next) => {
   res.status(500).json({
     success: false,
     message: 'Server error occurred',
-    error: err.message
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
   });
 });
 
 //API Endpoints
 app.use('/api/user', userRouter)
-app.use('/api/product',productRouter)
+app.use('/api/product', productRouter)
 app.use('/api/cart', cartRouter)
 app.use('/api/order', orderRouter)
 app.use('/api/seller', sellerRouter)
-// app.use('/api/reviews', reviewRouter)
 
 app.get('/', (req, res) => {
-  res.send('Api working!')
+  res.json({ 
+    success: true, 
+    message: 'Ceylon Backend API is working!',
+    timestamp: new Date().toISOString()
+  })
 })
 
-//Listener
-// For local development only:
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'Server is healthy',
+    database: isConnected ? 'connected' : 'disconnected'
+  })
+})
+
+// For local development
 if (process.env.NODE_ENV !== 'production') {
-  app.listen(port, () => console.log('server start on PORT : ' + port))
+  app.listen(port, () => console.log('Server started on PORT: ' + port))
 }
 
-// For Vercel serverless deployment:
+// Export for Vercel
 export default app;
