@@ -1,7 +1,7 @@
 import axios from 'axios';
+import { backendUrl } from '../constants/config';
 
-// Get backend URL from environment variable
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+console.log('Axios - Using backend URL:', backendUrl);
 
 // Create axios instance with default configuration
 const axiosInstance = axios.create({
@@ -17,7 +17,8 @@ const axiosInstance = axios.create({
 // Request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
-    console.log('Making request to:', config.url);
+    const fullUrl = `${config.baseURL}${config.url}`;
+    console.log('Making request to:', fullUrl);
     return config;
   },
   (error) => {

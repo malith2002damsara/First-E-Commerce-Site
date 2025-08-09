@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { backendUrl, currency } from '../App';
+import { backendUrl, currency } from '../constants/config';
 import { toast } from 'react-toastify';
 import { FiFilter, FiX, FiSearch, FiTrash2, FiEdit } from 'react-icons/fi';
 import EditProduct from '../components/EditProduct';
