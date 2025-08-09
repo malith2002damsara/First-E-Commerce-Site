@@ -1,7 +1,7 @@
-import axios from 'axios'
 import React, { useState } from 'react'
 import { backendUrl } from '../App'
 import { toast } from 'react-toastify'
+import axiosInstance from '../utils/axios'
 
 const Login = ({setToken}) => {
 
@@ -13,15 +13,7 @@ const Login = ({setToken}) => {
             e.preventDefault();
             console.log('Attempting login with backend URL:', backendUrl);
             
-            // Fix: Remove extra slash - use backendUrl + '/api/user/admin' instead of backendUrl + '//api/user/admin'
-            const loginUrl = `${backendUrl}/api/user/admin`;
-            console.log('Full login URL:', loginUrl);
-            
-            const response = await axios.post(loginUrl, {email, password}, {
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+            const response = await axiosInstance.post('/api/user/admin', {email, password});
             
             if (response.data.success) {
                 setToken(response.data.token)
@@ -32,9 +24,15 @@ const Login = ({setToken}) => {
         } catch (error) {
             console.log('Login error:', error);
             console.log('Error response:', error.response?.data);
+            console.log('Error status:', error.response?.status);
+            console.log('Error config:', error.config);
             
             if (error.response?.data?.message) {
                 toast.error(error.response.data.message)
+            } else if (error.response?.status === 0 || error.code === 'ERR_NETWORK') {
+                toast.error('Network error: Unable to connect to server. Please check your internet connection.')
+            } else if (error.code === 'ECONNABORTED') {
+                toast.error('Request timeout: Server is taking too long to respond.')
             } else if (error.message) {
                 toast.error(`Login failed: ${error.message}`)
             } else {

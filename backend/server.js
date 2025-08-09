@@ -39,6 +39,8 @@ const initializeConnections = async () => {
 
 // Middlewares
 app.use(express.json({ limit: '10mb' }))
+
+// Enhanced CORS configuration for Vercel
 app.use(cors({
   origin: [
     'https://ceylonadmin.vercel.app',
@@ -46,7 +48,35 @@ app.use(cors({
     'http://localhost:5173',
     'http://localhost:5174'
   ],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept',
+    'Origin'
+  ],
+  optionsSuccessStatus: 200
+}))
+
+// Handle preflight OPTIONS requests explicitly
+app.options('*', cors({
+  origin: [
+    'https://ceylonadmin.vercel.app',
+    'https://ceylonfrontend.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:5174'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept',
+    'Origin'
+  ]
 }))
 
 // Initialize connections before handling requests
