@@ -14,23 +14,27 @@ const BestSeller = () => {
   }, [products]) // Add products as a dependency
 
   return (
-    <div className='my-10 mx-5'>
-      <div className='text-center text-3xl py-8 '>
+    <div className='my-8 sm:my-12 lg:my-16'>
+      <div className='text-center py-6 sm:py-8'>
         <Title text1='BEST' text2='SELLERS' />
-        <p className='w-3/4 m-auto text-xs sm:text-sm md:text-base text-gray-400'>
-          Discover our top-selling products hand-picked for you.
+        <p className='w-11/12 sm:w-3/4 lg:w-2/3 mx-auto text-sm sm:text-base text-gray-600 mt-4 leading-relaxed'>
+          Discover our top-selling products hand-picked for you. These customer favorites 
+          represent the best in quality, style, and value.
         </p>
       </div>
 
-      <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 gap-y-6'>
+      <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 
+                      gap-3 sm:gap-4 lg:gap-6 gap-y-6 sm:gap-y-8 px-2 sm:px-4'>
         {bestSeller.length > 0 ? (
           bestSeller.map((item,index)=>(
             <ProductItem key={index} id={item._id} image={item.image} name={item.name} price={item.price}/>
           ))
         ) : (
-          <div className='col-span-full text-center text-gray-500 py-8'>
-            <p>No bestseller products available at the moment.</p>
-            <p className='text-sm'>Check back later for our top-selling items!</p>
+          <div className='col-span-full text-center text-gray-500 py-8 sm:py-12'>
+            <div className='max-w-md mx-auto'>
+              <p className='text-lg sm:text-xl font-medium mb-2'>No bestseller products available</p>
+              <p className='text-sm sm:text-base'>Check back later for our top-selling items!</p>
+            </div>
           </div>
         )}
       </div>
