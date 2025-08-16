@@ -1,4 +1,3 @@
-
 import { assets } from '../assets/assets'
 
 const Hero = () => {
@@ -25,12 +24,16 @@ const Hero = () => {
         </div>
       </div>
       
-      {/* Hero right side */}
-      <div className='w-full sm:w-1/2 h-64 sm:h-auto'>
+      {/* Hero right side - Improved image responsiveness */}
+      <div className='w-full sm:w-1/2 h-64 sm:h-auto relative'>
         <img 
-          className='w-full h-full object-cover sm:object-contain' 
+          className='w-full h-full object-cover sm:object-cover lg:object-contain' 
           src={assets.hero_img} 
           alt="Latest Fashion Collection" 
+          loading='lazy'
+          // For better performance on mobile, consider adding srcSet if you have multiple image sizes
+          // srcSet={`${assets.hero_img_small} 480w, ${assets.hero_img_medium} 768w, ${assets.hero_img} 1024w`}
+          // sizes='(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw'
         />
       </div>
     </div>
