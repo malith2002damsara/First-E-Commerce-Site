@@ -13,9 +13,111 @@ const Login = () => {
   const [name,setName] = useState('')
   const [password,setPassword] = useState('')
   const [email,setEmail] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [emailError, setEmailError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+
+  // Email validation function
+  const validateEmail = (email) => {
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
+    const commonDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'protonmail.com', 'aol.com']
+    
+    if (!email) {
+      return 'Email is required'
+    }
+    
+    if (!emailRegex.test(email)) {
+      return 'Please enter a valid email address'
+    }
+    
+    const domain = email.split('@')[1]?.toLowerCase()
+    if (domain && !commonDomains.includes(domain) && !domain.includes('.')) {
+      return 'Please use a valid email provider'
+    }
+    
+    return ''
+  }
+
+  // Password strength validation
+  const validatePassword = (password) => {
+    if (!password) {
+      return 'Password is required'
+    }
+    
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters long'
+    }
+    
+    const hasUpperCase = /[A-Z]/.test(password)
+    const hasLowerCase = /[a-z]/.test(password)
+    const hasNumbers = /\d/.test(password)
+    const hasSymbols = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    
+    const missingRequirements = []
+    if (!hasUpperCase) missingRequirements.push('uppercase letter')
+    if (!hasLowerCase) missingRequirements.push('lowercase letter') 
+    if (!hasNumbers) missingRequirements.push('number')
+    if (!hasSymbols) missingRequirements.push('symbol')
+    
+    if (missingRequirements.length > 0) {
+      return `Password must contain: ${missingRequirements.join(', ')}`
+    }
+    
+    return ''
+  }
+
+  // Get password strength level
+  const getPasswordStrength = (password) => {
+    if (!password) return { level: 0, text: '', color: '' }
+    
+    let score = 0
+    if (password.length >= 8) score++
+    if (/[A-Z]/.test(password)) score++
+    if (/[a-z]/.test(password)) score++
+    if (/\d/.test(password)) score++
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++
+    
+    if (score < 3) return { level: score, text: 'Weak', color: 'text-red-500' }
+    if (score < 5) return { level: score, text: 'Medium', color: 'text-yellow-500' }
+    return { level: score, text: 'Strong', color: 'text-green-500' }
+  }
+
+  // Handle input changes with validation
+  const handleEmailChange = (e) => {
+    const value = e.target.value
+    setEmail(value)
+    setEmailError(validateEmail(value))
+  }
+
+  const handlePasswordChange = (e) => {
+    const value = e.target.value
+    setPassword(value)
+    if (currentState === 'Sign Up') {
+      setPasswordError(validatePassword(value))
+    }
+  }
 
   const onSubmitHandler = async (event)=>{
     event.preventDefault();
+    
+    // Validate email
+    const emailValidation = validateEmail(email)
+    if (emailValidation) {
+      setEmailError(emailValidation)
+      toast.error(emailValidation)
+      return
+    }
+    
+    // Validate password for signup
+    if (currentState === 'Sign Up') {
+      const passwordValidation = validatePassword(password)
+      if (passwordValidation) {
+        setPasswordError(passwordValidation)
+        toast.error(passwordValidation)
+        return
+      }
+    }
+    
     try{
       if(currentState === 'Sign Up'){
 
@@ -24,6 +126,7 @@ const Login = () => {
         if(response.data.success){
            setToken(response.data.token)
            localStorage.setItem('token',response.data.token)
+           toast.success('Account created successfully!')
         }else{
           toast.error(response.data.message)
         }
@@ -33,6 +136,7 @@ const Login = () => {
                if(response.data.success){
                   setToken(response.data.token)
                   localStorage.setItem('token',response.data.token)
+                  toast.success('Login successful!')
       }else{
                   toast.error(response.data.message)
                }
@@ -41,8 +145,11 @@ const Login = () => {
         
     }catch(error){
         console.log(error)
-        toast.error(error.message)
-        // console.log("Making request to:", backendUrl + '/api/user/...');
+        if (error.response?.data?.message) {
+          toast.error(error.response.data.message)
+        } else {
+          toast.error('An error occurred. Please try again.')
+        }
     }
   }
 
@@ -122,23 +229,41 @@ const Login = () => {
               <label className="block text-sm sm:text-base font-semibold text-gray-700">
                 Email Address
               </label>
-              <input  
-                onChange={(e)=>setEmail(e.target.value)} 
-                value={email} 
-                type="email" 
-                className="w-full 
-                           px-4 xs:px-5 sm:px-6 
-                           py-3 xs:py-4 sm:py-4 
-                           text-sm xs:text-base
-                           border border-gray-300 
-                           rounded-xl sm:rounded-2xl 
-                           focus:ring-2 focus:ring-black focus:border-black 
-                           transition-all duration-300 
-                           shadow-sm focus:shadow-md
-                           placeholder-gray-400" 
-                placeholder='Enter your email address' 
-                required
-              />
+              <div className="relative">
+                <input  
+                  onChange={handleEmailChange}
+                  value={email} 
+                  type="email" 
+                  className={`w-full 
+                             px-4 xs:px-5 sm:px-6 
+                             py-3 xs:py-4 sm:py-4 
+                             text-sm xs:text-base
+                             border ${emailError ? 'border-red-500' : 'border-gray-300'}
+                             rounded-xl sm:rounded-2xl 
+                             focus:ring-2 focus:ring-black focus:border-black 
+                             transition-all duration-300 
+                             shadow-sm focus:shadow-md
+                             placeholder-gray-400`} 
+                  placeholder='Enter your email address' 
+                  required
+                />
+                {/* Email validation icon */}
+                {email && !emailError && (
+                  <div className="absolute right-3 xs:right-4 sm:right-5 top-1/2 transform -translate-y-1/2">
+                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                  </div>
+                )}
+              </div>
+              {emailError && (
+                <p className="text-red-500 text-xs sm:text-sm mt-1 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                  </svg>
+                  {emailError}
+                </p>
+              )}
             </div>
 
             {/* Password Field */}
@@ -146,23 +271,120 @@ const Login = () => {
               <label className="block text-sm sm:text-base font-semibold text-gray-700">
                 Password
               </label>
-              <input 
-                onChange={(e)=>setPassword(e.target.value)} 
-                value={password} 
-                type="password" 
-                className="w-full 
-                           px-4 xs:px-5 sm:px-6 
-                           py-3 xs:py-4 sm:py-4 
-                           text-sm xs:text-base
-                           border border-gray-300 
-                           rounded-xl sm:rounded-2xl 
-                           focus:ring-2 focus:ring-black focus:border-black 
-                           transition-all duration-300 
-                           shadow-sm focus:shadow-md
-                           placeholder-gray-400" 
-                placeholder='Enter your password' 
-                required
-              />
+              <div className="relative">
+                <input 
+                  onChange={handlePasswordChange}
+                  value={password} 
+                  type={showPassword ? "text" : "password"}
+                  className={`w-full 
+                             px-4 xs:px-5 sm:px-6 
+                             py-3 xs:py-4 sm:py-4 
+                             pr-12 xs:pr-14 sm:pr-16
+                             text-sm xs:text-base
+                             border ${passwordError ? 'border-red-500' : 'border-gray-300'}
+                             rounded-xl sm:rounded-2xl 
+                             focus:ring-2 focus:ring-black focus:border-black 
+                             transition-all duration-300 
+                             shadow-sm focus:shadow-md
+                             placeholder-gray-400`} 
+                  placeholder='Enter your password' 
+                  required
+                />
+                {/* Eye icon for password visibility */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 xs:right-4 sm:right-5 top-1/2 transform -translate-y-1/2
+                             text-gray-400 hover:text-gray-600 transition-colors duration-200
+                             focus:outline-none focus:text-gray-600"
+                >
+                  {showPassword ? (
+                    // Eye slash icon (hide password)
+                    <svg className="w-5 h-5 xs:w-6 xs:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464M9.878 9.878a3 3 0 00-.007 4.243m4.242-4.242L15.536 8.464M14.12 14.12l1.415 1.415M14.12 14.12a3 3 0 01-4.243.007m6.02-4.127a10.05 10.05 0 01-1.563 3.029M21 3l-18 18"></path>
+                    </svg>
+                  ) : (
+                    // Eye icon (show password)
+                    <svg className="w-5 h-5 xs:w-6 xs:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                  )}
+                </button>
+              </div>
+              
+              {/* Password strength indicator for Sign Up */}
+              {currentState === 'Sign Up' && password && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs sm:text-sm text-gray-600">Password Strength:</span>
+                    <span className={`text-xs sm:text-sm font-medium ${getPasswordStrength(password).color}`}>
+                      {getPasswordStrength(password).text}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        getPasswordStrength(password).level < 3 
+                          ? 'bg-red-500' 
+                          : getPasswordStrength(password).level < 5 
+                          ? 'bg-yellow-500' 
+                          : 'bg-green-500'
+                      }`}
+                      style={{ width: `${(getPasswordStrength(password).level / 5) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Password error message */}
+              {passwordError && (
+                <p className="text-red-500 text-xs sm:text-sm mt-1 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                  </svg>
+                  {passwordError}
+                </p>
+              )}
+              
+              {/* Password requirements for Sign Up */}
+              {currentState === 'Sign Up' && (
+                <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Password must contain:</p>
+                  <div className="space-y-1">
+                    <div className={`flex items-center gap-2 text-xs sm:text-sm ${/[A-Z]/.test(password) ? 'text-green-600' : 'text-gray-500'}`}>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      At least one uppercase letter
+                    </div>
+                    <div className={`flex items-center gap-2 text-xs sm:text-sm ${/[a-z]/.test(password) ? 'text-green-600' : 'text-gray-500'}`}>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      At least one lowercase letter
+                    </div>
+                    <div className={`flex items-center gap-2 text-xs sm:text-sm ${/\d/.test(password) ? 'text-green-600' : 'text-gray-500'}`}>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      At least one number
+                    </div>
+                    <div className={`flex items-center gap-2 text-xs sm:text-sm ${/[!@#$%^&*(),.?":{}|<>]/.test(password) ? 'text-green-600' : 'text-gray-500'}`}>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      At least one symbol (!@#$%^&*)
+                    </div>
+                    <div className={`flex items-center gap-2 text-xs sm:text-sm ${password.length >= 8 ? 'text-green-600' : 'text-gray-500'}`}>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      Minimum 8 characters
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Action Links */}
@@ -200,6 +422,7 @@ const Login = () => {
             {/* Submit Button */}
             <button 
               type="submit"
+              disabled={emailError || (currentState === 'Sign Up' && passwordError) || !email || !password || (currentState === 'Sign Up' && !name)}
               className="w-full bg-black text-white 
                          py-3 xs:py-4 sm:py-4 
                          px-4 xs:px-6 sm:px-8 
@@ -207,9 +430,12 @@ const Login = () => {
                          font-semibold
                          rounded-xl sm:rounded-2xl 
                          hover:bg-gray-800 active:bg-gray-900
+                         disabled:bg-gray-400 disabled:cursor-not-allowed
                          transform hover:scale-[1.02] active:scale-[0.98] 
+                         disabled:transform-none
                          transition-all duration-300 
                          shadow-lg hover:shadow-xl active:shadow-md
+                         disabled:shadow-sm
                          uppercase tracking-wider
                          focus:outline-none focus:ring-4 focus:ring-gray-300"
             >
