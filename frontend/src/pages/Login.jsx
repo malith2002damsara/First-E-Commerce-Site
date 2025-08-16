@@ -1,176 +1,268 @@
-import { useEffect, useState, useContext } from 'react'
+import  { useEffect, useState, useContext } from 'react'
 import { ShopContext } from '../context/ShopContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
+
 const Login = () => {
-  const [currentState, setCurrentState] = useState('Login');
-  const { token, setToken, navigate, backendUrl } = useContext(ShopContext);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: ''
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const [currentState , setCurrentState] = useState('Login');
+  const {token , setToken, navigate, backendUrl} = useContext(ShopContext)
 
-  const onSubmitHandler = async (event) => {
+  const [name,setName] = useState('')
+  const [password,setPassword] = useState('')
+  const [email,setEmail] = useState('')
+
+  const onSubmitHandler = async (event)=>{
     event.preventDefault();
-    setIsLoading(true);
-    
-    try {
-      const endpoint = currentState === 'Sign Up' ? '/api/user/register' : '/api/user/login';
-      const payload = currentState === 'Sign Up' 
-        ? { name: formData.name, email: formData.email, password: formData.password }
-        : { email: formData.email, password: formData.password };
+    try{
+      if(currentState === 'Sign Up'){
 
-      const response = await axios.post(backendUrl + endpoint, payload);
-      
-      if (response.data.success) {
-        setToken(response.data.token);
-        localStorage.setItem('token', response.data.token);
-        toast.success(currentState === 'Login' ? 'Login successful!' : 'Account created successfully!');
-      } else {
-        toast.error(response.data.message || 'Something went wrong');
+        const response = await axios.post(backendUrl + '/api/user/register' , {name,email,password})
+        
+        if(response.data.success){
+           setToken(response.data.token)
+           localStorage.setItem('token',response.data.token)
+        }else{
+          toast.error(response.data.message)
+        }
+
+      }else{
+               const response = await axios.post(backendUrl + '/api/user/login' , {email,password})
+               if(response.data.success){
+                  setToken(response.data.token)
+                  localStorage.setItem('token',response.data.token)
+      }else{
+                  toast.error(response.data.message)
+               }
       }
-    } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.message || error.message || 'An error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  useEffect(() => {
-    if (token) {
-      navigate('/');
+        
+    }catch(error){
+        console.log(error)
+        toast.error(error.message)
+        // console.log("Making request to:", backendUrl + '/api/user/...');
     }
-  }, [token, navigate]);
+  }
+
+  useEffect(()=>{
+
+    if(token){
+    navigate('/')
+    }
+
+  },[token, navigate])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-md">
-        <div className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-200">
-          <div className="text-center mb-6 sm:mb-8">
-            <div className="inline-flex items-center justify-center gap-2 mb-3 sm:mb-4">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 
+                    flex items-center justify-center 
+                    py-6 xs:py-8 sm:py-12 
+                    px-3 xs:px-4 sm:px-6 lg:px-8">
+      
+      <div className="w-full max-w-xs xs:max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl">
+        
+        {/* Main Card */}
+        <div className="bg-white 
+                        p-6 xs:p-8 sm:p-10 lg:p-12 
+                        rounded-2xl sm:rounded-3xl 
+                        shadow-xl sm:shadow-2xl 
+                        border border-gray-100
+                        transform transition-all duration-300 hover:shadow-3xl">
+          
+          {/* Header */}
+          <div className="text-center mb-6 xs:mb-8 sm:mb-10">
+            <div className="inline-flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
+              <h1 className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl 
+                             font-bold text-gray-800">
                 {currentState}
-              </h2>
-              <div className='h-[2px] w-8 sm:w-12 bg-gray-800'></div>
+              </h1>
+              <div className='h-[2px] w-8 xs:w-10 sm:w-12 lg:w-14 
+                              bg-gray-800 rounded-full'></div>
             </div>
-            <p className="text-gray-600 text-sm sm:text-base">
+            <p className="text-sm xs:text-base sm:text-lg text-gray-600 
+                          leading-relaxed px-2">
               {currentState === 'Login' 
-                ? 'Welcome back to Ceylon' 
-                : 'Join the Ceylon community'
-              }
+                ? 'Welcome back to Ceylon Fashion' 
+                : 'Join the Ceylon Fashion community'}
             </p>
           </div>
 
-          <form onSubmit={onSubmitHandler} className="space-y-4 sm:space-y-6">
+          {/* Form */}
+          <form onSubmit={onSubmitHandler} className="space-y-5 xs:space-y-6 sm:space-y-8">
+            
+            {/* Name Field - Only for Sign Up */}
             {currentState === 'Sign Up' && (
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+              <div className="space-y-2">
+                <label className="block text-sm sm:text-base font-semibold text-gray-700">
                   Full Name
                 </label>
-                <input
-                  id="name"
-                  name="name"
-                  onChange={handleChange}
-                  value={formData.name}
-                  type="text"
-                  className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-all duration-200 shadow-sm"
-                  placeholder="Enter your full name"
+                <input 
+                  onChange={(e)=>setName(e.target.value)} 
+                  value={name} 
+                  type="text" 
+                  className="w-full 
+                             px-4 xs:px-5 sm:px-6 
+                             py-3 xs:py-4 sm:py-4 
+                             text-sm xs:text-base
+                             border border-gray-300 
+                             rounded-xl sm:rounded-2xl 
+                             focus:ring-2 focus:ring-black focus:border-black 
+                             transition-all duration-300 
+                             shadow-sm focus:shadow-md
+                             placeholder-gray-400" 
+                  placeholder='Enter your full name' 
                   required
-                  autoComplete="name"
                 />
               </div>
             )}
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+            {/* Email Field */}
+            <div className="space-y-2">
+              <label className="block text-sm sm:text-base font-semibold text-gray-700">
                 Email Address
               </label>
-              <input
-                id="email"
-                name="email"
-                onChange={handleChange}
-                value={formData.email}
-                type="email"
-                className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-all duration-200 shadow-sm"
-                placeholder="Enter your email"
+              <input  
+                onChange={(e)=>setEmail(e.target.value)} 
+                value={email} 
+                type="email" 
+                className="w-full 
+                           px-4 xs:px-5 sm:px-6 
+                           py-3 xs:py-4 sm:py-4 
+                           text-sm xs:text-base
+                           border border-gray-300 
+                           rounded-xl sm:rounded-2xl 
+                           focus:ring-2 focus:ring-black focus:border-black 
+                           transition-all duration-300 
+                           shadow-sm focus:shadow-md
+                           placeholder-gray-400" 
+                placeholder='Enter your email address' 
                 required
-                autoComplete="email"
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+            {/* Password Field */}
+            <div className="space-y-2">
+              <label className="block text-sm sm:text-base font-semibold text-gray-700">
                 Password
               </label>
-              <input
-                id="password"
-                name="password"
-                onChange={handleChange}
-                value={formData.password}
-                type="password"
-                className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black transition-all duration-200 shadow-sm"
-                placeholder="Enter your password"
+              <input 
+                onChange={(e)=>setPassword(e.target.value)} 
+                value={password} 
+                type="password" 
+                className="w-full 
+                           px-4 xs:px-5 sm:px-6 
+                           py-3 xs:py-4 sm:py-4 
+                           text-sm xs:text-base
+                           border border-gray-300 
+                           rounded-xl sm:rounded-2xl 
+                           focus:ring-2 focus:ring-black focus:border-black 
+                           transition-all duration-300 
+                           shadow-sm focus:shadow-md
+                           placeholder-gray-400" 
+                placeholder='Enter your password' 
                 required
-                autoComplete={currentState === 'Login' ? 'current-password' : 'new-password'}
-                minLength={6}
               />
             </div>
 
-            <div className="flex items-center justify-between text-xs sm:text-sm">
-              {currentState === 'Login' && (
+            {/* Action Links */}
+            <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between 
+                            gap-3 xs:gap-0 text-sm sm:text-base pt-2">
+              <button 
+                type="button" 
+                className="text-gray-600 hover:text-black transition-colors duration-300 
+                           text-left xs:text-center underline decoration-dotted"
+              >
+                Forgot Your Password?
+              </button>
+              
+              {currentState === 'Login' ? (
                 <button 
-                  type="button" 
-                  className="text-gray-600 hover:text-black transition-colors"
+                  type="button"
+                  onClick={()=>setCurrentState('Sign Up')} 
+                  className="text-black font-semibold hover:underline transition-all duration-300
+                             text-left xs:text-right"
                 >
-                  Forgot Password?
+                  Create New Account
+                </button>
+              ) : (
+                <button 
+                  type="button"
+                  onClick={()=>setCurrentState('Login')} 
+                  className="text-black font-semibold hover:underline transition-all duration-300
+                             text-left xs:text-right"
+                >
+                  Already have account? Login
                 </button>
               )}
-              <button 
-                type="button"
-                onClick={() => setCurrentState(currentState === 'Login' ? 'Sign Up' : 'Login')}
-                className="text-black font-medium hover:underline ml-auto"
-              >
-                {currentState === 'Login' ? 'Create Account' : 'Login Here'}
-              </button>
             </div>
 
-            <button
+            {/* Submit Button */}
+            <button 
               type="submit"
-              disabled={isLoading}
-              className={`w-full bg-black text-white py-2.5 sm:py-3 px-4 rounded-lg font-medium hover:bg-gray-800 transition-all duration-200 shadow-md flex items-center justify-center ${
-                isLoading ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-lg'
-              }`}
+              className="w-full bg-black text-white 
+                         py-3 xs:py-4 sm:py-4 
+                         px-4 xs:px-6 sm:px-8 
+                         text-sm xs:text-base sm:text-lg 
+                         font-semibold
+                         rounded-xl sm:rounded-2xl 
+                         hover:bg-gray-800 active:bg-gray-900
+                         transform hover:scale-[1.02] active:scale-[0.98] 
+                         transition-all duration-300 
+                         shadow-lg hover:shadow-xl active:shadow-md
+                         uppercase tracking-wider
+                         focus:outline-none focus:ring-4 focus:ring-gray-300"
             >
-              {isLoading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Processing...
-                </>
-              ) : (
-                currentState === 'Login' ? 'Sign In' : 'Create Account'
-              )}
+              {currentState === 'Login' ? 'Sign In to Account' : 'Create New Account'}
             </button>
           </form>
 
-          <div className="mt-4 sm:mt-6 text-center">
-            <p className="text-xs text-gray-500">
-              By continuing, you agree to our <a href="#" className="underline">Terms</a> and <a href="#" className="underline">Privacy Policy</a>
+          {/* Footer */}
+          <div className="mt-6 xs:mt-8 sm:mt-10 text-center">
+            <p className="text-xs xs:text-sm text-gray-500 leading-relaxed px-4">
+              By continuing, you agree to our 
+              <button className="text-black hover:underline mx-1 font-medium">
+                Terms of Service
+              </button>
+              and
+              <button className="text-black hover:underline mx-1 font-medium">
+                Privacy Policy
+              </button>
             </p>
+          </div>
+
+          {/* Social Login Options - Optional */}
+          <div className="mt-6 xs:mt-8 sm:mt-10">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-white text-gray-500 font-medium">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            {/* Social Buttons Placeholder */}
+            <div className="mt-4 xs:mt-6 grid grid-cols-2 gap-3 xs:gap-4">
+              <button className="flex justify-center items-center 
+                                 px-4 py-3 xs:py-4 
+                                 border border-gray-300 rounded-xl 
+                                 bg-white hover:bg-gray-50 
+                                 transition-colors duration-300
+                                 text-sm font-medium text-gray-700">
+                <span>Google</span>
+              </button>
+              <button className="flex justify-center items-center 
+                                 px-4 py-3 xs:py-4 
+                                 border border-gray-300 rounded-xl 
+                                 bg-white hover:bg-gray-50 
+                                 transition-colors duration-300
+                                 text-sm font-medium text-gray-700">
+                <span>Facebook</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -178,4 +270,4 @@ const Login = () => {
   )
 }
 
-export default Login;
+export default Login
