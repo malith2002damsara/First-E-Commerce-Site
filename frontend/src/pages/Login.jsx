@@ -101,11 +101,11 @@ const Login = () => {
   }, [token, navigate]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex mt-10 justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-gray-200">
           {/* Header */}
-          <div className="text-center mb-6">
+          <div className="text-center mb-1">
             <div className="flex items-center justify-center gap-3 mb-4">
               <h2 className="text-2xl font-bold text-gray-800">
                 {currentState}
